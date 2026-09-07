@@ -1,0 +1,1021 @@
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+* { box-sizing: border-box; }
+
+.crm-root {
+  --bg: #F5F6F8; --surface: #FFFFFF; --border: #E3E6EB;
+  --ink-900: #12151C; --ink-600: #565D6D; --ink-400: #93989F;
+  --accent: #2F5EFF; --accent-soft: #EAEFFF;
+  --warn: #E0432B; --warn-soft: #FDEAE7;
+  --amber: #C97A11; --amber-soft: #FBF0DE;
+  --success: #17875A; --success-soft: #E4F5EE;
+  --pause: #7A7F8A; --pause-soft: #EEEFF1;
+  font-family: 'Inter', sans-serif; color: var(--ink-900); background: var(--bg);
+  min-height: 100%; display: flex; flex-direction: column; position: relative;
+}
+
+.crm-topbar { display: flex; align-items: center; justify-content: space-between; padding: 18px 24px; border-bottom: 1px solid var(--border); background: var(--surface); flex-wrap: wrap; gap: 12px; }
+.crm-wordmark { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 18px; display: flex; align-items: center; gap: 8px; }
+.crm-wordmark .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); }
+.crm-tabs { display: flex; gap: 4px; background: var(--bg); padding: 4px; border-radius: 10px; }
+.crm-tab { border: none; background: transparent; padding: 8px 16px; font-family: 'Inter', sans-serif; font-weight: 600; font-size: 13px; color: var(--ink-600); border-radius: 8px; cursor: pointer; }
+.crm-tab.active { background: var(--surface); color: var(--ink-900); box-shadow: 0 1px 2px rgba(18,21,28,0.08); }
+.crm-tab:hover:not(.active) { color: var(--ink-900); }
+.crm-addbtn { border: none; background: var(--accent); color: white; font-family: 'Inter', sans-serif; font-weight: 600; font-size: 13px; padding: 9px 16px; border-radius: 8px; cursor: pointer; }
+.crm-addbtn:hover { background: #2649D6; }
+.role-select { border: 1px solid var(--border); background: var(--bg); font-family: 'Inter', sans-serif; font-weight: 600; font-size: 12px; padding: 7px 10px; border-radius: 8px; color: var(--ink-900); }
+
+.crm-body { padding: 24px; flex: 1; min-width: 0; }
+
+.search-row { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+.search-input { border: 1px solid var(--border); background: var(--surface); font-family: 'Inter', sans-serif; font-size: 13px; padding: 8px 12px; border-radius: 8px; width: 240px; color: var(--ink-900); }
+.search-input:focus { outline: none; border-color: var(--accent); }
+.archive-link { border: none; background: none; font-size: 12px; font-weight: 600; color: var(--ink-600); cursor: pointer; text-decoration: underline; }
+.archive-link:hover { color: var(--ink-900); }
+
+.leads-list { display: flex; flex-direction: column; gap: 10px; max-width: 720px; }
+.lead-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; display: flex; align-items: flex-start; gap: 14px; }
+.lead-card.archived { opacity: 0.7; }
+.lead-main { flex: 1; min-width: 0; }
+.lead-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }
+.lead-name { font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 15px; }
+.lead-username { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--accent); }
+.lead-bullets { font-size: 13px; color: var(--ink-600); line-height: 1.6; margin: 4px 0 8px; }
+.lead-bullets div::before { content: '·'; margin-right: 6px; color: var(--ink-400); }
+.lead-meta { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.lead-price { font-family: 'IBM Plex Mono', monospace; font-size: 12px; background: var(--bg); padding: 3px 8px; border-radius: 6px; }
+.ping-badge { font-family: 'IBM Plex Mono', monospace; font-size: 12px; padding: 3px 9px; border-radius: 6px; font-weight: 500; }
+.ping-overdue { background: var(--warn-soft); color: var(--warn); }
+.ping-today { background: var(--amber-soft); color: var(--amber); }
+.ping-upcoming { background: var(--bg); color: var(--ink-600); }
+.lead-actions { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
+.btn-convert { border: 1px solid var(--success); background: var(--success-soft); color: var(--success); font-weight: 600; font-size: 12px; padding: 7px 12px; border-radius: 7px; cursor: pointer; white-space: nowrap; }
+.btn-convert:hover { background: var(--success); color: white; }
+.btn-ping { border: 1px solid var(--border); background: var(--surface); color: var(--ink-600); font-weight: 600; font-size: 12px; padding: 7px 12px; border-radius: 7px; cursor: pointer; white-space: nowrap; }
+.btn-ping:hover { border-color: var(--ink-400); color: var(--ink-900); }
+.btn-discard { border: 1px solid var(--border); background: var(--surface); color: var(--warn); font-weight: 600; font-size: 12px; padding: 7px 12px; border-radius: 7px; cursor: pointer; white-space: nowrap; }
+.btn-discard:hover { background: var(--warn-soft); border-color: var(--warn); }
+.btn-restore { border: 1px solid var(--accent); background: var(--accent-soft); color: var(--accent); font-weight: 600; font-size: 12px; padding: 7px 12px; border-radius: 7px; cursor: pointer; white-space: nowrap; }
+.btn-restore:hover { background: var(--accent); color: white; }
+
+.filterbar { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+.chip { border: 1px solid var(--border); background: var(--surface); color: var(--ink-600); font-size: 12px; font-weight: 600; padding: 6px 12px; border-radius: 20px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+.chip .swatch { width: 7px; height: 7px; border-radius: 50%; }
+.chip.active { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+.chip.all.active { background: var(--ink-900); border-color: var(--ink-900); color: white; }
+.toggle-stuck { margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: var(--ink-600); cursor: pointer; user-select: none; }
+.toggle-track { width: 32px; height: 18px; border-radius: 10px; background: var(--border); position: relative; transition: background 0.15s; flex-shrink:0; cursor: pointer; }
+.toggle-track.on { background: var(--accent); }
+.toggle-track.warn-on { background: var(--warn); }
+.toggle-thumb { width: 14px; height: 14px; border-radius: 50%; background: white; position: absolute; top: 2px; left: 2px; transition: left 0.15s; }
+.toggle-track.on .toggle-thumb { left: 16px; }
+
+.kanban { display: flex; gap: 14px; overflow-x: auto; padding-bottom: 8px; }
+.kcol { flex: 0 0 220px; }
+.kcol-spine { height: 4px; border-radius: 2px; background: var(--border); margin-bottom: 10px; display: flex; }
+.kcol-spine .seg { flex: 1; background: var(--border); margin-right: 2px; }
+.kcol-spine .seg.filled { background: var(--accent); }
+.kcol-spine .seg:last-child { margin-right: 0; }
+.kcol-head { margin-bottom: 4px; }
+.kcol-title-row { display: flex; align-items: center; justify-content: space-between; }
+.kcol-title { font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 12.5px; cursor: text; line-height: 1.3; }
+.kcol-count { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--ink-400); background: var(--surface); border: 1px solid var(--border); padding: 1px 7px; border-radius: 20px; flex-shrink: 0; margin-left: 6px; }
+.kcol-norm { font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: var(--ink-400); margin: 3px 0 10px; }
+.kcol-drop { min-height: 60px; max-height: 62vh; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; border-radius: 10px; padding: 2px; transition: background 0.12s ease; }
+.kcol-drop.dragover { background: var(--accent-soft); }
+.kcol-drop::-webkit-scrollbar { width: 5px; }
+.kcol-drop::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+.scard { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; cursor: pointer; }
+.scard.stuck { border-color: var(--warn); background: var(--warn-soft); }
+.scard.paused { border-style: dashed; opacity: 0.4; filter: grayscale(0.6); background: var(--pause-soft); }
+.scard.locked { cursor: default; }
+.scard-top { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 5px; }
+.scard-name { font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 13px; }
+.avatar { width: 18px; height: 18px; border-radius: 50%; color: white; font-size: 9px; font-weight: 700; display: flex; align-items: center; justify-content: center; font-family: 'Inter', sans-serif; flex-shrink: 0; }
+.time-badge { font-family: 'IBM Plex Mono', monospace; font-size: 11px; padding: 2px 7px; border-radius: 6px; display: inline-block; }
+.time-ok { background: var(--bg); color: var(--ink-600); }
+.time-warn { background: var(--amber-soft); color: var(--amber); }
+.time-critical { background: var(--warn); color: white; font-weight: 600; }
+.time-paused { background: var(--pause-soft); color: var(--pause); }
+
+.crm-hint { font-size: 12px; color: var(--ink-400); margin-top: 18px; max-width: 720px; }
+
+.stats-summary { display: flex; gap: 12px; margin-bottom: 22px; flex-wrap: wrap; }
+.stat-box { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; min-width: 140px; }
+.stat-num { font-family: 'Space Grotesk', sans-serif; font-size: 26px; font-weight: 700; }
+.stat-num.warn-num { color: var(--warn); }
+.stat-num.pause-num { color: var(--pause); }
+.stat-label { font-size: 12px; color: var(--ink-600); margin-top: 2px; }
+.stats-section-title { font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 14px; margin: 24px 0 10px; }
+table.stats-table { width: 100%; max-width: 820px; border-collapse: collapse; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+table.stats-table th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--ink-400); font-weight: 600; padding: 10px 14px; border-bottom: 1px solid var(--border); }
+table.stats-table td { padding: 10px 14px; font-size: 13px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+table.stats-table tr:last-child td { border-bottom: none; }
+.td-mono { font-family: 'IBM Plex Mono', monospace; font-size: 12px; }
+
+.admin-add { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; max-width: 480px; margin-bottom: 22px; display: flex; flex-direction: column; gap: 8px; }
+.admin-add input { border: 1px solid var(--border); background: var(--bg); font-family: 'Inter', sans-serif; font-size: 13px; padding: 8px 11px; border-radius: 7px; width: 100%; min-width: 0; }
+.admin-add input:focus { outline: none; border-color: var(--accent); }
+.admin-add-row2 { display: flex; gap: 8px; align-items: center; }
+.admin-add-row2 input { flex: 1; min-width: 0; }
+.gen-btn { border: 1px solid var(--border); background: var(--bg); font-size: 11px; font-weight: 600; color: var(--ink-600); border-radius: 7px; padding: 8px 10px; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
+
+.curator-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; max-width: 620px; }
+.curator-card.blocked { opacity: 0.6; }
+.curator-card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; flex-wrap: wrap; gap: 8px; }
+.curator-card-left { display: flex; align-items: center; gap: 10px; }
+.curator-card-name { font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 13.5px; }
+.curator-card-creds { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--ink-600); display: flex; gap: 12px; }
+.status-pill { font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 20px; }
+.status-pill.on { background: var(--success-soft); color: var(--success); }
+.status-pill.off { background: var(--warn-soft); color: var(--warn); }
+.perm-row { display: flex; align-items: center; justify-content: space-between; padding: 5px 0; font-size: 12.5px; color: var(--ink-600); border-top: 1px solid var(--border); }
+.curator-card-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+.btn-block { border: 1px solid var(--border); background: var(--surface); color: var(--ink-600); font-size: 11.5px; font-weight: 600; padding: 6px 11px; border-radius: 7px; cursor: pointer; }
+.btn-block.warn { color: var(--warn); }
+.btn-block.ok { color: var(--success); }
+.btn-remove { border: 1px solid var(--border); background: var(--surface); color: var(--ink-400); font-size: 11px; font-weight: 600; padding: 5px 10px; border-radius: 6px; cursor: pointer; }
+.btn-remove:enabled:hover { border-color: var(--warn); color: var(--warn); }
+.btn-remove:disabled { cursor: not-allowed; opacity: 0.4; }
+.stage-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 8px; max-width: 560px; }
+.stage-row-name { font-size: 13px; font-weight: 500; }
+.stage-row-input-wrap { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.stage-days-input { width: 64px; border: 1px solid var(--border); background: var(--bg); font-family: 'IBM Plex Mono', monospace; font-size: 13px; padding: 6px 8px; border-radius: 7px; text-align: center; }
+.stage-days-input:focus { outline: none; border-color: var(--accent); }
+.stage-days-unit { font-size: 12px; color: var(--ink-400); }
+
+.block-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px 20px; text-align: center; color: var(--ink-600); }
+.block-screen b { color: var(--ink-900); font-family: 'Space Grotesk', sans-serif; font-size: 16px; }
+
+.modal-backdrop { position: fixed; inset: 0; background: rgba(18,21,28,0.45); display: flex; align-items: center; justify-content: center; z-index: 50; padding: 20px; }
+.modal-card { background: var(--surface); border-radius: 14px; width: 100%; max-width: 460px; max-height: 84vh; overflow-y: auto; padding: 22px 24px; }
+.modal-head { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 4px; }
+.modal-name { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 18px; }
+.modal-close { border: none; background: var(--bg); width: 26px; height: 26px; border-radius: 50%; cursor: pointer; color: var(--ink-600); font-size: 14px; line-height: 1; flex-shrink: 0; }
+.modal-sub { font-size: 12px; color: var(--ink-600); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.modal-section-title { font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 12px; color: var(--ink-600); text-transform: uppercase; letter-spacing: 0.03em; margin: 16px 0 8px; }
+.modal-bullets { font-size: 13px; color: var(--ink-600); line-height: 1.6; }
+.modal-bullets div::before { content: '·'; margin-right: 6px; color: var(--ink-400); }
+.modal-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.modal-select { border: 1px solid var(--border); background: var(--surface); font-family: 'Inter', sans-serif; font-size: 13px; padding: 6px 10px; border-radius: 7px; color: var(--ink-900); }
+.modal-select:disabled { background: var(--bg); color: var(--ink-400); cursor: not-allowed; }
+.postpay-badge { font-family: 'IBM Plex Mono', monospace; font-size: 12px; background: var(--success-soft); color: var(--success); padding: 3px 9px; border-radius: 6px; font-weight: 600; }
+.btn-pause-full { width: 100%; border: 1px solid var(--border); background: var(--bg); color: var(--ink-600); font-weight: 600; font-size: 12px; padding: 9px; border-radius: 8px; cursor: pointer; margin-top: 4px; }
+.btn-pause-full:hover { border-color: var(--pause); color: var(--pause); }
+.btn-pause-full.active { background: var(--pause-soft); color: var(--pause); border-color: var(--pause); }
+.history-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+.history-row:last-child { border-bottom: none; }
+.history-row.event .history-stage { color: var(--ink-600); font-size: 12.5px; }
+.history-stage { flex: 1; }
+.history-dur { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--ink-600); }
+.history-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--border); flex-shrink: 0; }
+.history-dot.now { background: var(--accent); }
+.history-dot.event { background: var(--ink-400); }
+.assign-row { display: flex; align-items: center; justify-content: space-between; border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; margin-bottom: 8px; cursor: pointer; }
+.assign-row:hover { border-color: var(--accent); }
+.assign-left { display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 600; }
+.assign-count { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--ink-600); }
+
+.cohort-plan-block { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 4px 14px; margin-bottom: 16px; }
+.cohort-plan-row { display: flex; align-items: center; justify-content: space-between; padding: 9px 0; font-size: 13px; }
+.cohort-plan-row + .cohort-plan-row { border-top: 1px solid var(--border); }
+.cohort-plan-label { color: var(--ink-600); }
+.cohort-plan-value { font-weight: 600; }
+.cohort-plan-value .muted { font-weight: 400; color: var(--ink-400); font-size: 12px; margin-left: 4px; }
+</style>
+
+<div class="crm-root" id="crmRoot">
+  <div class="crm-topbar">
+    <div class="crm-wordmark"><span class="dot"></span>Пайплайн</div>
+    <div class="crm-tabs" id="tabsRow"></div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <select class="role-select" id="roleSelect"></select>
+      <button class="crm-addbtn" id="addLeadBtn">+ Лид</button>
+    </div>
+  </div>
+  <div class="crm-body" id="crmBody">
+    <div id="view-leads"></div>
+    <div id="view-students" style="display:none"></div>
+    <div id="view-stats" style="display:none"></div>
+    <div id="view-admin" style="display:none"></div>
+    <div id="view-blocked" style="display:none"></div>
+  </div>
+  <div id="modal-root"></div>
+</div>
+
+<script>
+(function() {
+  const root = document.getElementById('crmRoot');
+  const palette = ['#2F5EFF', '#17875A', '#C97A11', '#A23BAB', '#0F9AA5', '#D94F70'];
+
+  const stages = [
+    { name: 'GoPractice', days: 30 },
+    { name: 'Теория (проджект + техническая)', days: 10 },
+    { name: 'Теория продуктовая', days: 10 },
+    { name: 'Кейсы', days: 14 },
+    { name: 'Легенда и резюме', days: 14 },
+    { name: 'Вышел в найм', days: 21 },
+    { name: 'Получил 2 разбора', days: 30 },
+    { name: 'Оффер', days: 14 },
+    { name: 'Вышел на работу', days: 60 },
+    { name: 'Выплатил пост оплату', days: null }
+  ];
+
+  let curators = [
+    { id: 'c1', name: 'Аня Т.', color: palette[0], login: 'anya.t', password: 'K7f2Lp9q', blocked: false,
+      canMoveOthers: false, canReassign: false, seeLeads: false, seeStats: true },
+    { id: 'c2', name: 'Игорь Л.', color: palette[1], login: 'igor.l', password: 'Q3m8Xr1w', blocked: false,
+      canMoveOthers: true, canReassign: false, seeLeads: true, seeStats: true },
+    { id: 'c3', name: 'Света Р.', color: palette[2], login: 'sveta.r', password: 'T5v0Nc4e', blocked: true,
+      canMoveOthers: false, canReassign: false, seeLeads: false, seeStats: false }
+  ];
+  let curSeq = 4;
+  function curatorById(id) { return curators.find(c => c.id === id) || { name: '—', color: '#CCC' }; }
+  function initials(name) { return name.split(' ').map(p => p[0]).join('').slice(0,2).toUpperCase(); }
+  function genPassword() { const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789'; let s=''; for(let i=0;i<8;i++) s+=chars[Math.floor(Math.random()*chars.length)]; return s; }
+
+  let currentRole = 'admin';
+
+  const demoBulletPool = [
+    ['Backend-разраб, 3 года опыта', 'Софты средние', 'На продакта с нуля'],
+    ['Работал в поддержке, хочет в продукт', 'Софты сильные', 'Удалёнка'],
+    ['Аналитик данных, 2 года опыта', 'ЗП ожидание от 130к', 'Живёт в Питере'],
+    ['Маркетолог, хочет сменить сферу', 'Софты средние', 'Гибкий по деньгам'],
+    ['QA-инженер, 4 года опыта', 'Софты слабые', 'Мотивация высокая']
+  ];
+
+  let leads = [
+    { id: 'l1', username: '@slatter17', name: 'Андрей', bullets: ['Android-разраб, 23 года, 2 года опыта', 'ЗП от 120-150к (гибок)', 'Софты средние', 'Живёт в Питере', 'На продакта с нуля'], price: '65к + 70', pingAt: addDays(0), archived: false },
+    { id: 'l2', username: '@Ksematya', name: 'Ксюша', bullets: ['Работала в онлайн-школе, продажник', 'Софты средние', 'Хочет от 100к', 'Удалёнка, живёт в Таиланде', 'На продакта с нуля'], price: '70к + 70', pingAt: addDays(-1), archived: false },
+    { id: 'l3', username: '@dimon_dev', name: 'Дмитрий', bullets: ['Backend-разраб, 4 года опыта', 'Хочет остаться в IT, ближе к продукту', 'Софты сильные'], price: '65к + 70', pingAt: addDays(3), archived: false },
+    { id: 'l4', username: '@olga_pm', name: 'Ольга', bullets: ['HR-менеджер, хочет сменить сферу', 'Софты слабые', 'Без бюджета сейчас'], price: '65к + 70', pingAt: addDays(-14), archived: true },
+    { id: 'l5', username: '@vitaly89', name: 'Виталий', bullets: ['QA-инженер, 3 года опыта'], price: '65к + 70', pingAt: addDays(-20), archived: true }
+  ];
+
+  function extractPostpayPct(price) { const m = price.match(/\+\s*(\d+)/); return m ? parseInt(m[1], 10) : 70; }
+
+  // ---- когорты как отдельное редактируемое поле (const — объявляем до генерации демо-учеников) ----
+  const standardCohorts = (function() {
+    const arr = []; const now = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      arr.push({ label: d.toLocaleDateString('ru-RU', { month: 'short', year: 'numeric' }), date: d });
+    }
+    return arr;
+  })();
+
+  const firstNames = ['Марина','Олег','Настя','Игорь','Лена','Паша','Юля','Артём','Соня','Костя','Вера','Дима','Катя','Рома','Аля','Максим','Оля','Тимур','Инна','Влад','Женя','Гриша','Полина','Саша'];
+  let students = [];
+  let sid = 1;
+  for (let i = 0; i < 40; i++) {
+    const stageIdx = Math.floor(Math.pow(Math.random(), 1.15) * stages.length);
+    const norm = stages[stageIdx].days || 30;
+    const curator = curators[i % 3];
+    const roll = Math.random();
+    let ratio;
+    if (roll < 0.6) ratio = 0.1 + Math.random() * 0.75;
+    else if (roll < 0.82) ratio = 0.85 + Math.random() * 0.4;
+    else ratio = 1.25 + Math.random() * 1.3;
+    const daysAgo = Math.max(1, Math.round(norm * ratio));
+    const enteredAt = addDays(-daysAgo);
+
+    let timeline = [];
+    let cursor = new Date(enteredAt);
+    for (let st = stageIdx - 1; st >= 0; st--) {
+      const n = stages[st].days || 14;
+      const dur = Math.max(1, Math.round(n * (0.5 + Math.random() * 0.7)));
+      const exitedAt = new Date(cursor);
+      const enteredAtSt = new Date(cursor); enteredAtSt.setDate(enteredAtSt.getDate() - dur);
+      timeline.unshift({ type: 'stage', stage: st, enteredAt: enteredAtSt, exitedAt });
+      cursor = enteredAtSt;
+    }
+
+    students.push({
+      id: 's' + (sid++),
+      name: firstNames[i % firstNames.length] + ' ' + String.fromCharCode(65 + (i % 20)) + '.',
+      stage: stageIdx, curatorId: curator.id,
+      enteredAt, paused: Math.random() < 0.08, timeline,
+      bullets: demoBulletPool[i % demoBulletPool.length],
+      postpayPct: 65 + (i % 3) * 5,
+      comments: i % 5 === 0 ? [{ author: curator.name, at: addDays(-2), text: 'Созванивались, всё по плану, вопросов нет.' }] : [],
+      cohortIdx: null
+    });
+  }
+  students.forEach(s => { s.cohortIdx = nearestCohortIdx(cohortOf(s)); });
+
+  let filterCurators = new Set(curators.map(c => c.id));
+  let onlyStuck = false;
+  let leadsView = 'active';
+  let studentQuery = '';
+  let leadQuery = '';
+
+  function addDays(n) { const d = new Date(); d.setDate(d.getDate() + n); return d; }
+  function fmtDate(d) { return new Date(d).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' }); }
+  function daysSince(d) { const today = new Date(); today.setHours(0,0,0,0); const t = new Date(d); t.setHours(0,0,0,0); return Math.round((today - t) / 86400000); }
+  function pingStatus(d) {
+    const diff = daysSince(d) * -1;
+    if (diff < 0) return { cls: 'ping-overdue', label: 'просрочен · ' + fmtDate(d) };
+    if (diff === 0) return { cls: 'ping-today', label: 'сегодня' };
+    return { cls: 'ping-upcoming', label: fmtDate(d) };
+  }
+  function isStuck(s) { if (s.paused) return false; const norm = stages[s.stage].days; if (norm == null) return false; return daysSince(s.enteredAt) > norm; }
+  function timeTier(days, norm) { if (norm == null) return 'time-ok'; if (days > norm) return 'time-critical'; if (days >= norm * 0.7) return 'time-warn'; return 'time-ok'; }
+  function loadOf(curatorId) { return students.filter(s => s.curatorId === curatorId).length; }
+  function cardRank(s) { return s.paused ? 2 : (isStuck(s) ? 1 : 0); }
+  function healthTier(s) {
+    if (s.paused) return 'paused';
+    const norm = stages[s.stage].days;
+    if (norm == null) return 'green';
+    const d = daysSince(s.enteredAt);
+    if (d > norm) return 'red';
+    if (d >= norm * 0.7) return 'yellow';
+    return 'green';
+  }
+  function plannedCompletion(s) {
+    if (s.paused) return null;
+    let remaining = 0;
+    const norm = stages[s.stage].days;
+    if (norm != null) remaining += Math.max(norm - daysSince(s.enteredAt), 0);
+    for (let i = s.stage + 1; i < stages.length; i++) { if (stages[i].days != null) remaining += stages[i].days; }
+    return addDays(remaining);
+  }
+  function cohortOf(s) {
+    let earliest = new Date(s.enteredAt);
+    s.timeline.forEach(h => { if (h.type === 'stage' && new Date(h.enteredAt) < earliest) earliest = new Date(h.enteredAt); });
+    return earliest;
+  }
+  function cohortLabel(d) { return d.toLocaleDateString('ru-RU', { month: 'short', year: 'numeric' }); }
+  function pluralPeople(n) { return pluralRu(n, ['человек', 'человека', 'человек']); }
+  function pluralRu(n, forms) {
+    const n100 = n % 100, n10 = n % 10;
+    if (n10 === 1 && n100 !== 11) return forms[0];
+    if (n10 >= 2 && n10 <= 4 && !(n100 >= 12 && n100 <= 14)) return forms[1];
+    return forms[2];
+  }
+
+  function nearestCohortIdx(date) {
+    for (let i = 0; i < standardCohorts.length; i++) {
+      const c = standardCohorts[i];
+      if (date.getFullYear() === c.date.getFullYear() && date.getMonth() === c.date.getMonth()) return i;
+    }
+    return date < standardCohorts[0].date ? 0 : standardCohorts.length - 1;
+  }
+  function plannedStageForElapsed(elapsedDays) {
+    let sum = 0;
+    for (let i = 0; i < stages.length; i++) {
+      const norm = stages[i].days;
+      if (norm == null) return i;
+      sum += norm;
+      if (elapsedDays < sum) return i;
+    }
+    return stages.length - 1;
+  }
+
+  function isAdmin() { return currentRole === 'admin'; }
+  function currentCurator() { return isAdmin() ? null : curatorById(currentRole); }
+  function canMoveStudent(s) { if (isAdmin()) return true; const c = currentCurator(); return s.curatorId === c.id || c.canMoveOthers; }
+  function canReassignCurator() { if (isAdmin()) return true; const c = currentCurator(); return !!c.canReassign; }
+  function canSeeTab(tab) {
+    if (isAdmin()) return true;
+    const c = currentCurator();
+    if (tab === 'students') return true;
+    if (tab === 'leads') return !!c.seeLeads;
+    if (tab === 'stats') return !!c.seeStats;
+    if (tab === 'admin') return false;
+    return false;
+  }
+
+  let currentTab = 'leads';
+  let statsSubTab = 'main';
+  function renderTabs() {
+    const tabsEl = root.querySelector('#tabsRow');
+    const tabs = [
+      { id: 'leads', label: 'Лиды' },
+      { id: 'students', label: 'Ученики' },
+      { id: 'stats', label: 'Статистика' },
+      { id: 'admin', label: 'Админка' }
+    ].filter(t => canSeeTab(t.id));
+    if (!tabs.find(t => t.id === currentTab)) currentTab = tabs.length ? tabs[0].id : null;
+    tabsEl.innerHTML = tabs.map(t => `<button class="crm-tab ${t.id === currentTab ? 'active' : ''}" data-tab="${t.id}">${t.label}</button>`).join('');
+    tabsEl.querySelectorAll('.crm-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        currentTab = tab.dataset.tab;
+        tabsEl.querySelectorAll('.crm-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        showView(currentTab);
+      });
+    });
+    showView(currentTab);
+  }
+
+  function showView(target) {
+    ['leads','students','stats','admin'].forEach(v => { root.querySelector('#view-' + v).style.display = v === target ? '' : 'none'; });
+  }
+
+  function renderRoleSelect() {
+    const sel = root.querySelector('#roleSelect');
+    sel.innerHTML = `<option value="admin">Смотреть как: Админ</option>` +
+      curators.map(c => `<option value="${c.id}">Смотреть как: ${c.name}${c.blocked ? ' (заблокирован)' : ''}</option>`).join('');
+    sel.value = currentRole;
+    sel.onchange = () => { currentRole = sel.value; renderApp(); };
+  }
+
+  function renderApp() {
+    renderRoleSelect();
+    const c = currentCurator();
+    const blocked = c && c.blocked;
+    root.querySelector('#crmBody').style.display = blocked ? 'none' : '';
+    root.querySelector('#view-blocked').style.display = blocked ? '' : 'none';
+    root.querySelector('#tabsRow').style.display = blocked ? 'none' : '';
+    root.querySelector('#addLeadBtn').style.display = blocked ? 'none' : (canSeeTab('leads') ? '' : 'none');
+    if (blocked) {
+      root.querySelector('#view-blocked').innerHTML = `<div class="block-screen"><b>Доступ заблокирован</b><div style="margin-top:8px">Логин ${c.name} отключён администратором. Обратитесь к владельцу школы.</div></div>`;
+      return;
+    }
+    renderTabs();
+    renderLeads(); renderStudents(); renderStats(); renderAdmin();
+  }
+
+  function renderLeads() {
+    const el = root.querySelector('#view-leads');
+    if (!canSeeTab('leads')) { el.innerHTML = ''; return; }
+    const activeEl = document.activeElement;
+    const searchFocused = activeEl && activeEl.id === 'leadSearch';
+    const searchSel = searchFocused ? [activeEl.selectionStart, activeEl.selectionEnd] : null;
+    const source = leads.filter(l => (leadsView === 'archive') === !!l.archived);
+    const filtered = source.filter(l => !leadQuery || (l.name + ' ' + l.username).toLowerCase().includes(leadQuery.toLowerCase()));
+    const sorted = leadsView === 'active' ? [...filtered].sort((a,b) => a.pingAt - b.pingAt) : filtered;
+    const archivedCount = leads.filter(l => l.archived).length;
+
+    el.innerHTML = `
+    <div class="search-row">
+      <input class="search-input" id="leadSearch" placeholder="Поиск по имени или @username" value="${leadQuery}">
+      <button class="archive-link" id="toggleArchive">${leadsView === 'active' ? `Архив (${archivedCount})` : '← К активным лидам'}</button>
+    </div>
+    <div class="leads-list">${sorted.map(l => {
+      const p = pingStatus(l.pingAt);
+      return `
+      <div class="lead-card ${l.archived ? 'archived' : ''}" data-id="${l.id}">
+        <div class="lead-main">
+          <div class="lead-head"><span class="lead-name">${l.name}</span><span class="lead-username">${l.username}</span></div>
+          <div class="lead-bullets">${l.bullets.map(b => `<div>${b}</div>`).join('')}</div>
+          <div class="lead-meta">
+            <span class="lead-price">${l.price}</span>
+            ${l.archived ? '' : `<span class="ping-badge ${p.cls}">пинг · ${p.label}</span>`}
+          </div>
+        </div>
+        <div class="lead-actions">
+          ${l.archived
+            ? `<button class="btn-restore" data-action="restore" data-id="${l.id}">Восстановить</button>`
+            : `<button class="btn-convert" data-action="convert" data-id="${l.id}">Оплатил →</button>
+               <button class="btn-ping" data-action="snooze" data-id="${l.id}">+2 дня</button>
+               <button class="btn-discard" data-action="discard" data-id="${l.id}">Выкинуть</button>`}
+        </div>
+      </div>`;
+    }).join('')}
+    ${sorted.length === 0 ? '<div class="crm-hint">Пусто.</div>' : ''}
+    </div>`;
+    const leadSearchEl = el.querySelector('#leadSearch');
+    leadSearchEl.addEventListener('input', e => { leadQuery = e.target.value; renderLeads(); });
+    if (searchFocused) { leadSearchEl.focus(); if (searchSel) { try { leadSearchEl.setSelectionRange(searchSel[0], searchSel[1]); } catch(e){} } }
+    el.querySelector('#toggleArchive').addEventListener('click', () => { leadsView = leadsView === 'active' ? 'archive' : 'active'; renderLeads(); });
+  }
+
+  function filteredStudents() {
+    return students.filter(s => {
+      if (!filterCurators.has(s.curatorId)) return false;
+      if (onlyStuck && !isStuck(s)) return false;
+      if (studentQuery && !s.name.toLowerCase().includes(studentQuery.toLowerCase())) return false;
+      return true;
+    });
+  }
+
+  function renderFilterBar() {
+    const allActive = filterCurators.size === curators.length;
+    return `
+    <div class="search-row"><input class="search-input" id="studentSearch" placeholder="Поиск ученика по имени" value="${studentQuery}"></div>
+    <div class="filterbar">
+      <button class="chip all ${allActive ? 'active' : ''}" data-curator="all">Все кураторы</button>
+      ${curators.map(c => `<button class="chip ${filterCurators.has(c.id) && !allActive ? 'active' : ''}" data-curator="${c.id}"><span class="swatch" style="background:${c.color}"></span>${c.name}</button>`).join('')}
+      <label class="toggle-stuck" id="stuckToggle">
+        <span class="toggle-track ${onlyStuck ? 'warn-on on' : ''}"><span class="toggle-thumb"></span></span>
+        Только превысившие норму этапа
+      </label>
+    </div>`;
+  }
+
+  function renderStudents() {
+    const el = root.querySelector('#view-students');
+    const list = filteredStudents();
+
+    // сохраняем позиции скролла и фокус поиска, чтобы re-render не "выбрасывал" пользователя наверх/влево
+    const prevKanban = el.querySelector('.kanban');
+    const prevScrollLeft = prevKanban ? prevKanban.scrollLeft : 0;
+    const prevColScrolls = {};
+    if (prevKanban) prevKanban.querySelectorAll('.kcol-drop').forEach(z => { prevColScrolls[z.dataset.stage] = z.scrollTop; });
+    const activeEl = document.activeElement;
+    const searchFocused = activeEl && activeEl.id === 'studentSearch';
+    const searchSel = searchFocused ? [activeEl.selectionStart, activeEl.selectionEnd] : null;
+
+    el.innerHTML = renderFilterBar() + `<div class="kanban">${stages.map((stage, idx) => {
+      const items = list.filter(s => s.stage === idx).sort((a,b) => {
+        const ra = cardRank(a), rb = cardRank(b);
+        if (ra !== rb) return ra - rb;
+        if (ra === 1) return (daysSince(b.enteredAt) - stages[b.stage].days) - (daysSince(a.enteredAt) - stages[a.stage].days);
+        return a.name.localeCompare(b.name);
+      });
+      return `
+      <div class="kcol">
+        <div class="kcol-spine">${stages.map((_, i) => `<div class="seg ${i <= idx ? 'filled' : ''}"></div>`).join('')}</div>
+        <div class="kcol-head">
+          <div class="kcol-title-row">
+            <span class="kcol-title" data-stage="${idx}" contenteditable="${isAdmin()}" spellcheck="false">${idx + 1}. ${stage.name}</span>
+            <span class="kcol-count">${items.length}</span>
+          </div>
+          <div class="kcol-norm">${stage.days != null ? 'норма · ' + stage.days + ' дн.' : 'финальный шаг'}</div>
+        </div>
+        <div class="kcol-drop" data-stage="${idx}">
+          ${items.map(s => {
+            const d = daysSince(s.enteredAt);
+            const cur = curatorById(s.curatorId);
+            const badgeCls = s.paused ? 'time-paused' : timeTier(d, stage.days);
+            const badgeText = s.paused ? '⏸ на паузе' : d + ' дн. на этапе';
+            const locked = !canMoveStudent(s);
+            return `
+            <div class="scard ${isStuck(s) ? 'stuck' : ''} ${s.paused ? 'paused' : ''} ${locked ? 'locked' : ''}" draggable="${!locked}" data-id="${s.id}">
+              <div class="scard-top">
+                <span class="scard-name">${s.name}</span>
+                <span class="avatar" style="background:${cur.color}">${initials(cur.name)}</span>
+              </div>
+              <span class="time-badge ${badgeCls}">${badgeText}</span>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>`;
+    }).join('')}</div>`;
+
+    el.querySelectorAll('.scard').forEach(card => {
+      card.addEventListener('dragstart', e => e.dataTransfer.setData('text/plain', card.dataset.id));
+      card.addEventListener('click', () => openStudentModal(card.dataset.id));
+    });
+    el.querySelectorAll('.kcol-drop').forEach(zone => {
+      zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+      zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+      zone.addEventListener('drop', e => {
+        e.preventDefault(); zone.classList.remove('dragover');
+        const id = e.dataTransfer.getData('text/plain');
+        const stageIdx = parseInt(zone.dataset.stage, 10);
+        const st = students.find(s => s.id === id);
+        if (st && st.stage !== stageIdx && canMoveStudent(st)) {
+          st.timeline.push({ type: 'stage', stage: st.stage, enteredAt: st.enteredAt, exitedAt: new Date() });
+          st.stage = stageIdx; st.enteredAt = new Date();
+        }
+        renderStudents(); renderStats();
+      });
+    });
+    if (isAdmin()) {
+      el.querySelectorAll('.kcol-title').forEach(t => {
+        t.addEventListener('blur', () => { const idx = parseInt(t.dataset.stage, 10); stages[idx].name = t.textContent.replace(/^\d+\.\s*/, '').trim(); });
+      });
+    }
+    el.querySelectorAll('.chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        const cid = chip.dataset.curator;
+        if (cid === 'all') { filterCurators = new Set(curators.map(c => c.id)); }
+        else {
+          if (filterCurators.size === curators.length) filterCurators = new Set([cid]);
+          else if (filterCurators.has(cid)) { filterCurators.delete(cid); if (filterCurators.size === 0) filterCurators = new Set(curators.map(c => c.id)); }
+          else filterCurators.add(cid);
+        }
+        renderStudents();
+      });
+    });
+    const toggle = el.querySelector('#stuckToggle');
+    if (toggle) toggle.addEventListener('click', () => { onlyStuck = !onlyStuck; renderStudents(); });
+    const search = el.querySelector('#studentSearch');
+    if (search) {
+      search.addEventListener('input', e => { studentQuery = e.target.value; renderStudents(); });
+      if (searchFocused) { search.focus(); if (searchSel) { try { search.setSelectionRange(searchSel[0], searchSel[1]); } catch(e){} } }
+    }
+
+    const newKanban = el.querySelector('.kanban');
+    if (newKanban) {
+      newKanban.scrollLeft = prevScrollLeft;
+      newKanban.querySelectorAll('.kcol-drop').forEach(z => { if (prevColScrolls[z.dataset.stage] != null) z.scrollTop = prevColScrolls[z.dataset.stage]; });
+    }
+  }
+
+  function mergedTimeline(s) {
+    return [...s.timeline, { type: 'stage', stage: s.stage, enteredAt: s.enteredAt, exitedAt: null }]
+      .sort((a, b) => new Date(a.enteredAt) - new Date(b.enteredAt));
+  }
+
+  function openStudentModal(id) {
+    const s = students.find(x => x.id === id);
+    if (!s) return;
+    const cur = curatorById(s.curatorId);
+    const modalRoot = root.querySelector('#modal-root');
+    const canReassign = canReassignCurator();
+    modalRoot.innerHTML = `
+    <div class="modal-backdrop" id="modalBackdrop">
+      <div class="modal-card">
+        <div class="modal-head"><div class="modal-name">${s.name}</div><button class="modal-close" id="modalClose">✕</button></div>
+        <div class="modal-sub">
+          <span class="postpay-badge">постоплата · ${s.postpayPct}%</span>
+          <span class="postpay-badge" style="background:var(--accent-soft);color:var(--accent)">${s.paused ? 'прогноз: на паузе' : 'план завершения · ' + fmtDate(plannedCompletion(s))}</span>
+        </div>
+
+        <div class="modal-section-title">Куратор</div>
+        <div class="modal-row">
+          <span class="avatar" style="background:${cur.color}">${initials(cur.name)}</span>
+          <select class="modal-select" id="curatorSelect" ${canReassign ? '' : 'disabled'}>
+            ${curators.map(c => `<option value="${c.id}" ${c.id === s.curatorId ? 'selected' : ''}>${c.name} (${loadOf(c.id)})</option>`).join('')}
+          </select>
+        </div>
+
+        <button class="btn-pause-full ${s.paused ? 'active' : ''}" id="pauseToggleBtn" ${canMoveStudent(s) ? '' : 'disabled'}>${s.paused ? '▶ Снять с паузы' : '⏸ Поставить на паузу'}</button>
+
+        <div class="modal-section-title">Описание</div>
+        <div class="modal-bullets">${s.bullets.map(b => `<div>${b}</div>`).join('')}</div>
+
+        <div class="modal-section-title">Комментарии</div>
+        <div id="commentsList">
+          ${s.comments.length === 0 ? '<div style="font-size:12px;color:var(--ink-400);margin-bottom:8px">Комментариев пока нет.</div>' :
+            [...s.comments].sort((a,b) => new Date(b.at) - new Date(a.at)).map(cm => `
+            <div style="font-size:13px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--border)">
+              <div style="color:var(--ink-400);font-size:11px;margin-bottom:2px">${cm.author} · ${fmtDate(cm.at)}</div>
+              <div>${cm.text}</div>
+            </div>`).join('')}
+        </div>
+        <div style="display:flex;gap:6px;margin-top:6px">
+          <input class="search-input" id="newCommentInput" placeholder="Написать комментарий" style="width:100%;flex:1">
+          <button class="crm-addbtn" id="addCommentBtn" style="flex-shrink:0">+</button>
+        </div>
+
+        <div class="modal-section-title">История</div>
+        ${mergedTimeline(s).map(h => {
+          if (h.type === 'curator') {
+            return `<div class="history-row event"><span class="history-dot event"></span><span class="history-stage">Куратор изменён: ${curatorById(h.from).name} → ${curatorById(h.to).name}<br><span style="color:var(--ink-400);font-size:11px">${fmtDate(h.at)}</span></span></div>`;
+          }
+          const isNow = h.exitedAt === null;
+          const dur = isNow ? daysSince(h.enteredAt) : Math.round((new Date(h.exitedAt) - new Date(h.enteredAt)) / 86400000);
+          return `<div class="history-row"><span class="history-dot ${isNow ? 'now' : ''}"></span><span class="history-stage">${stages[h.stage].name}<br><span style="color:var(--ink-400);font-size:11px">${fmtDate(h.enteredAt)} — ${isNow ? 'сейчас' : fmtDate(h.exitedAt)}</span></span><span class="history-dur">${dur} дн.</span></div>`;
+        }).join('')}
+      </div>
+    </div>`;
+    modalRoot.querySelector('#modalClose').addEventListener('click', () => modalRoot.innerHTML = '');
+    modalRoot.querySelector('#modalBackdrop').addEventListener('click', e => { if (e.target.id === 'modalBackdrop') modalRoot.innerHTML = ''; });
+    modalRoot.querySelector('#pauseToggleBtn').addEventListener('click', () => {
+      if (!canMoveStudent(s)) return;
+      s.paused = !s.paused; renderStudents(); renderStats(); openStudentModal(id);
+    });
+    modalRoot.querySelector('#addCommentBtn').addEventListener('click', () => {
+      const input = modalRoot.querySelector('#newCommentInput');
+      const text = input.value.trim();
+      if (!text) return;
+      s.comments.push({ author: isAdmin() ? 'Админ' : currentCurator().name, at: new Date(), text });
+      openStudentModal(id);
+    });
+    const csel = modalRoot.querySelector('#curatorSelect');
+    csel.addEventListener('change', e => {
+      if (!canReassign) return;
+      const newId = e.target.value;
+      if (newId !== s.curatorId) {
+        s.timeline.push({ type: 'curator', from: s.curatorId, to: newId, at: new Date() });
+        s.curatorId = newId;
+      }
+      renderStudents(); renderStats(); openStudentModal(id);
+    });
+  }
+
+  function openAssignModal(leadId) {
+    const l = leads.find(x => x.id === leadId);
+    if (!l) return;
+    const modalRoot = root.querySelector('#modal-root');
+    const sortedCurators = [...curators].sort((a,b) => loadOf(a.id) - loadOf(b.id));
+    modalRoot.innerHTML = `
+    <div class="modal-backdrop" id="assignBackdrop">
+      <div class="modal-card">
+        <div class="modal-head"><div class="modal-name">Назначить куратора</div><button class="modal-close" id="assignClose">✕</button></div>
+        <div class="modal-sub">${l.name} · переводим в ученики</div>
+        ${sortedCurators.map(c => `
+          <div class="assign-row" data-cid="${c.id}">
+            <div class="assign-left"><span class="avatar" style="background:${c.color}">${initials(c.name)}</span>${c.name}</div>
+            <span class="assign-count">${loadOf(c.id)} учеников</span>
+          </div>`).join('')}
+      </div>
+    </div>`;
+    modalRoot.querySelector('#assignClose').addEventListener('click', () => modalRoot.innerHTML = '');
+    modalRoot.querySelector('#assignBackdrop').addEventListener('click', e => { if (e.target.id === 'assignBackdrop') modalRoot.innerHTML = ''; });
+    modalRoot.querySelectorAll('.assign-row').forEach(row => {
+      row.addEventListener('click', () => {
+        const cid = row.dataset.cid;
+        students.push({ id: 's' + (sid++), name: l.name, stage: 0, curatorId: cid, enteredAt: new Date(), paused: false, timeline: [], bullets: l.bullets, postpayPct: extractPostpayPct(l.price), comments: [], cohortIdx: nearestCohortIdx(new Date()) });
+        leads.splice(leads.findIndex(x => x.id === leadId), 1);
+        modalRoot.innerHTML = '';
+        renderApp();
+      });
+    });
+  }
+
+  function renderStats() {
+    const el = root.querySelector('#view-stats');
+    if (!canSeeTab('stats')) { el.innerHTML = ''; return; }
+    const total = students.length;
+    const pausedCount = students.filter(s => s.paused).length;
+    const stuckList = students.filter(isStuck).sort((a,b) => (daysSince(b.enteredAt)/(stages[b.stage].days||1)) - (daysSince(a.enteredAt)/(stages[a.stage].days||1)));
+    const byCurator = curators.map(c => {
+      const mine = students.filter(s => s.curatorId === c.id);
+      const stuck = mine.filter(isStuck);
+      const withNorm = mine.filter(s => !s.paused && stages[s.stage].days != null);
+      const avgPct = withNorm.length ? Math.round(withNorm.reduce((sum, s) => sum + daysSince(s.enteredAt) / stages[s.stage].days, 0) / withNorm.length * 100) : 0;
+      return { c, count: mine.length, stuck: stuck.length, avgPct };
+    });
+    const greenN = students.filter(s => healthTier(s) === 'green').length;
+    const yellowN = students.filter(s => healthTier(s) === 'yellow').length;
+    const redN = students.filter(s => healthTier(s) === 'red').length;
+    const problemByStage = stages.map((st, idx) => students.filter(s => s.stage === idx && healthTier(s) === 'red').length);
+
+    const cohortGroups = standardCohorts.map((co, idx) => ({ ...co, idx, students: students.filter(s => s.cohortIdx === idx) })).filter(co => co.students.length > 0);
+
+    el.innerHTML = `
+    <div class="filterbar" style="margin-bottom:20px">
+      <button class="chip ${statsSubTab === 'main' ? 'active' : ''}" data-substab="main">Основная</button>
+      <button class="chip ${statsSubTab === 'extra' ? 'active' : ''}" data-substab="extra">Дополнительная</button>
+    </div>
+    <div id="statsMainPane" style="${statsSubTab === 'main' ? '' : 'display:none'}">
+      <div class="stats-section-title" style="margin-top:0">Здоровье потока</div>
+      <div class="stats-summary">
+        <div class="stat-box"><div class="stat-num">${total}</div><div class="stat-label">Всего учеников</div></div>
+        <div class="stat-box"><div class="stat-num" style="color:var(--success)">🟢 ${greenN}</div><div class="stat-label">Идут по плану</div></div>
+        <div class="stat-box"><div class="stat-num" style="color:var(--amber)">🟡 ${yellowN}</div><div class="stat-label">Требуют внимания</div></div>
+        <div class="stat-box"><div class="stat-num warn-num">🔴 ${redN}</div><div class="stat-label">Застряли</div></div>
+        <div class="stat-box"><div class="stat-num pause-num">⚪ ${pausedCount}</div><div class="stat-label">На паузе</div></div>
+      </div>
+
+      <div class="stats-section-title">Статистика по этапам</div>
+      <table class="stats-table">
+        <tr><th>Этап</th><th>Норма</th><th>Сейчас учеников</th><th>Застряло (🔴)</th></tr>
+        ${stages.map((st, idx) => {
+          const onStage = students.filter(s => s.stage === idx).length;
+          return `<tr><td>${idx + 1}. ${st.name}</td><td class="td-mono">${st.days != null ? st.days + ' дн.' : '—'}</td><td class="td-mono">${onStage}</td><td class="td-mono" style="${problemByStage[idx] > 0 ? 'color:var(--warn);font-weight:600' : ''}">${problemByStage[idx]}</td></tr>`;
+        }).join('')}
+      </table>
+
+      <div class="stats-section-title">По кураторам</div>
+      <table class="stats-table">
+        <tr><th>Куратор</th><th>Учеников</th><th>Превысили норму</th><th>Средний темп (% от нормы)</th></tr>
+        ${byCurator.map(r => `<tr><td><span class="avatar" style="background:${r.c.color};display:inline-flex;margin-right:8px;vertical-align:middle">${initials(r.c.name)}</span>${r.c.name}</td><td class="td-mono">${r.count}</td><td class="td-mono" style="${r.stuck > 0 ? 'color:var(--warn);font-weight:600' : ''}">${r.stuck}</td><td class="td-mono" style="${r.avgPct > 100 ? 'color:var(--warn);font-weight:600' : ''}">${r.avgPct}%</td></tr>`).join('')}
+      </table>
+      <div class="stats-section-title">Превысили норму этапа</div>
+      <table class="stats-table">
+        <tr><th>Ученик</th><th>Этап</th><th>Норма</th><th>Куратор</th><th>Фактически</th></tr>
+        ${stuckList.length === 0 ? '<tr><td colspan="5" style="color:var(--ink-400)">Никто не превысил норму.</td></tr>' : stuckList.map(s => `<tr><td>${s.name}</td><td>${stages[s.stage].name}</td><td class="td-mono">${stages[s.stage].days} дн.</td><td>${curatorById(s.curatorId).name}</td><td class="td-mono" style="color:var(--warn);font-weight:600">${daysSince(s.enteredAt)} дн.</td></tr>`).join('')}
+      </table>
+    </div>
+
+    <div id="statsExtraPane" style="${statsSubTab === 'extra' ? '' : 'display:none'}">
+      <div class="stats-section-title" style="margin-top:0">Воронка доходимости по когортам</div>
+      <div style="overflow-x:auto">
+      <table class="stats-table" style="max-width:none">
+        <tr><th>Когорта</th><th>Всего</th>${stages.map((s,i) => `<th title="${s.name}" style="text-align:center">${i+1}</th>`).join('')}</tr>
+        ${cohortGroups.map(co => {
+          const elapsed = daysSince(co.date);
+          const plannedIdx = plannedStageForElapsed(elapsed);
+          let cumBefore = 0;
+          for (let i = 0; i < plannedIdx; i++) cumBefore += (stages[i].days || 0);
+          const dayInStage = elapsed - cumBefore + 1;
+          return `
+          <tr class="cohort-row" data-cidx="${co.idx}" style="cursor:pointer">
+            <td style="white-space:nowrap">
+              <div style="font-weight:600">${co.label}</div>
+              <div style="font-size:10.5px;color:var(--ink-400);margin-top:2px">${elapsed} дн. в пути</div>
+            </td>
+            <td class="td-mono">${co.students.length}</td>
+            ${stages.map((s, idx) => {
+              const reached = co.students.filter(s2 => s2.stage >= idx).length;
+              const pct = Math.round(reached / co.students.length * 100);
+              const isPlanned = idx === plannedIdx;
+              return `<td class="td-mono" style="text-align:center;background:rgba(47,94,255,${(pct/100*0.35).toFixed(2)});${isPlanned ? 'box-shadow:inset 0 0 0 2px var(--accent);font-weight:700' : ''}">${pct}%</td>`;
+            }).join('')}
+          </tr>`;
+        }).join('')}
+      </table>
+      </div>
+      <div class="crm-hint">Под названием когорты — сколько дней она в пути. Процент в колонках — доля когорты, достигшая этапа. Ячейка с синей рамкой — плановый этап сейчас: если факт левее рамки заметно ниже 100% — когорта отстаёт. Клик по строке — список учеников когорты и точный план (этап/день).</div>
+    </div>`;
+
+    el.querySelectorAll('[data-substab]').forEach(btn => {
+      btn.addEventListener('click', () => { statsSubTab = btn.dataset.substab; renderStats(); });
+    });
+    el.querySelectorAll('.cohort-row').forEach(row => {
+      row.addEventListener('click', () => openCohortModal(parseInt(row.dataset.cidx, 10)));
+    });
+  }
+
+  function openCohortModal(cidx) {
+    const co = standardCohorts[cidx];
+    const list = students.filter(s => s.cohortIdx === cidx);
+    const elapsed = daysSince(co.date);
+    const pIdx = plannedStageForElapsed(elapsed);
+    let cumBefore = 0;
+    for (let i = 0; i < pIdx; i++) cumBefore += (stages[i].days || 0);
+    const dayInStage = elapsed - cumBefore + 1;
+    const planLabel = `${pIdx + 1}. ${stages[pIdx].name}${stages[pIdx].days != null ? ` (день ${dayInStage} из ${stages[pIdx].days})` : ''}`;
+    const onTrackCount = list.filter(s => s.stage >= plannedStageForElapsed(daysSince(cohortOf(s)))).length;
+    const behindCount = list.length - onTrackCount;
+    const onTrackPct = list.length ? Math.round(onTrackCount / list.length * 100) : 0;
+    const behindPct = list.length ? 100 - onTrackPct : 0;
+    const modalRoot = root.querySelector('#modal-root');
+    modalRoot.innerHTML = `
+    <div class="modal-backdrop" id="cohortBackdrop">
+      <div class="modal-card">
+        <div class="modal-head"><div class="modal-name">Когорта: ${co.label}</div><button class="modal-close" id="cohortClose">✕</button></div>
+        <div class="modal-sub">${list.length} ${pluralPeople(list.length)} · ${elapsed} дн. в пути</div>
+
+        <div class="cohort-plan-block">
+          <div class="cohort-plan-row">
+            <span class="cohort-plan-label">Плановый этап</span>
+            <span class="cohort-plan-value">${planLabel}</span>
+          </div>
+          <div class="cohort-plan-row">
+            <span class="cohort-plan-label">На плановом этапе (или дальше)</span>
+            <span class="cohort-plan-value" style="color:var(--success)">${onTrackPct}%<span class="muted">(${onTrackCount} ${pluralPeople(onTrackCount)})</span></span>
+          </div>
+          <div class="cohort-plan-row">
+            <span class="cohort-plan-label">Отстают</span>
+            <span class="cohort-plan-value" style="color:${behindCount > 0 ? 'var(--warn)' : 'var(--ink-600)'}">${behindPct}%<span class="muted">(${behindCount} ${pluralPeople(behindCount)})</span></span>
+          </div>
+        </div>
+        <div style="font-size:11px;color:var(--ink-400);margin:-10px 0 16px">Плановый этап когорты — ориентир по календарю. «Отстают/на плане» считается индивидуально, от личной даты старта каждого ученика — так участники, зашедшие в начале и в конце месяца, не путаются друг с другом.</div>
+
+        ${list.map(s => {
+          const cur = curatorById(s.curatorId);
+          const tier = healthTier(s);
+          const icon = tier === 'green' ? '🟢' : tier === 'yellow' ? '🟡' : tier === 'red' ? '🔴' : '⚪';
+          return `
+          <div class="assign-row cohort-student-row" data-sid="${s.id}" style="cursor:pointer">
+            <div class="assign-left" style="gap:8px">
+              <span>${icon}</span>
+              <span class="avatar" style="background:${cur.color}">${initials(cur.name)}</span>
+              <span>${s.name}</span>
+              <span style="font-weight:400;color:var(--ink-600);font-size:12px">· ${stages[s.stage].name}</span>
+            </div>
+            ${isAdmin() ? `<select class="modal-select" data-sid="${s.id}" style="font-size:11px">
+              ${standardCohorts.map((c2, i2) => `<option value="${i2}" ${i2 === cidx ? 'selected' : ''}>${c2.label}</option>`).join('')}
+            </select>` : ''}
+          </div>`;
+        }).join('')}
+        ${list.length === 0 ? '<div class="crm-hint">В этой когорте пока никого нет.</div>' : ''}
+      </div>
+    </div>`;
+    modalRoot.querySelector('#cohortClose').addEventListener('click', () => modalRoot.innerHTML = '');
+    modalRoot.querySelector('#cohortBackdrop').addEventListener('click', e => { if (e.target.id === 'cohortBackdrop') modalRoot.innerHTML = ''; });
+    modalRoot.querySelectorAll('.cohort-student-row').forEach(row => {
+      row.addEventListener('click', e => {
+        if (e.target.closest('select')) return;
+        openStudentModal(row.dataset.sid);
+      });
+    });
+    modalRoot.querySelectorAll('select[data-sid]').forEach(sel => {
+      sel.addEventListener('change', e => {
+        const st = students.find(s => s.id === sel.dataset.sid);
+        if (st) st.cohortIdx = parseInt(e.target.value, 10);
+        renderStats();
+        openCohortModal(cidx);
+      });
+    });
+  }
+
+  let newCuratorDraft = { name: '', login: '', password: genPassword() };
+  function renderAdmin() {
+    const el = root.querySelector('#view-admin');
+    if (!isAdmin()) { el.innerHTML = ''; return; }
+    const timeToOffer = stages.slice(0, 8).reduce((sum, st) => sum + (st.days || 0), 0);
+    const toMonths = Math.floor(timeToOffer / 30);
+    const toRemDays = timeToOffer % 30;
+    const monthsDaysStr = (toMonths > 0 ? `${toMonths} ${pluralRu(toMonths, ['месяц','месяца','месяцев'])}` : '') +
+      (toMonths > 0 && toRemDays > 0 ? ' и ' : '') +
+      (toRemDays > 0 || toMonths === 0 ? `${toRemDays} ${pluralRu(toRemDays, ['день','дня','дней'])}` : '');
+    el.innerHTML = `
+    <div class="stats-summary">
+      <div class="stat-box">
+        <div class="stat-num">${timeToOffer} дн.</div>
+        <div class="stat-label">Ожидаемое время с нуля до оффера (этапы 1–8)</div>
+        <div class="stat-label" style="margin-top:2px;color:var(--ink-400)">${monthsDaysStr}</div>
+      </div>
+    </div>
+
+    <div class="stats-section-title" style="margin-top:0">Длительность этапов</div>
+    ${stages.map((st, idx) => `
+      <div class="stage-row">
+        <span class="stage-row-name">${idx + 1}. ${st.name}</span>
+        <div class="stage-row-input-wrap">
+          ${st.days != null
+            ? `<input type="number" min="1" class="stage-days-input" data-stage="${idx}" value="${st.days}"><span class="stage-days-unit">дн.</span>`
+            : `<span class="stage-days-unit">без нормы</span>`}
+        </div>
+      </div>`).join('')}
+
+    <div class="admin-add">
+      <input id="newCuratorName" placeholder="Имя нового куратора" value="${newCuratorDraft.name}">
+      <div class="admin-add-row2">
+        <input id="newCuratorLogin" placeholder="Логин" value="${newCuratorDraft.login}">
+        <input id="newCuratorPassword" placeholder="Пароль" value="${newCuratorDraft.password}">
+        <button class="gen-btn" id="genPassBtn">Сгенерировать</button>
+      </div>
+      <button class="crm-addbtn" id="addCuratorBtn" style="align-self:flex-start">Добавить куратора</button>
+    </div>
+    <div class="stats-section-title">Кураторы</div>
+    ${curators.map(c => {
+      const count = loadOf(c.id);
+      return `
+      <div class="curator-card ${c.blocked ? 'blocked' : ''}">
+        <div class="curator-card-head">
+          <div class="curator-card-left">
+            <span class="avatar" style="background:${c.color}">${initials(c.name)}</span>
+            <span class="curator-card-name">${c.name}</span>
+            <span class="status-pill ${c.blocked ? 'off' : 'on'}">${c.blocked ? 'Заблокирован' : 'Активен'}</span>
+          </div>
+          <div class="curator-card-creds">
+            <span>логин: ${c.login}</span><span>пароль: ${c.password}</span>
+          </div>
+        </div>
+        <div class="perm-row"><span>Двигать чужих учеников</span><span class="toggle-track ${c.canMoveOthers ? 'on' : ''}" data-perm="canMoveOthers" data-cid="${c.id}"><span class="toggle-thumb"></span></span></div>
+        <div class="perm-row"><span>Менять куратора для ученика</span><span class="toggle-track ${c.canReassign ? 'on' : ''}" data-perm="canReassign" data-cid="${c.id}"><span class="toggle-thumb"></span></span></div>
+        <div class="perm-row"><span>Видеть вкладку «Лиды»</span><span class="toggle-track ${c.seeLeads ? 'on' : ''}" data-perm="seeLeads" data-cid="${c.id}"><span class="toggle-thumb"></span></span></div>
+        <div class="perm-row"><span>Видеть вкладку «Статистика»</span><span class="toggle-track ${c.seeStats ? 'on' : ''}" data-perm="seeStats" data-cid="${c.id}"><span class="toggle-thumb"></span></span></div>
+        <div class="curator-card-foot">
+          <span style="font-size:12px;color:var(--ink-600)">Активных учеников: ${count}</span>
+          <div style="display:flex;gap:8px">
+            <button class="btn-block ${c.blocked ? 'ok' : 'warn'}" data-action="toggleBlock" data-cid="${c.id}">${c.blocked ? 'Разблокировать доступ' : 'Заблокировать доступ'}</button>
+            <button class="btn-remove" data-action="remove" data-cid="${c.id}" ${count > 0 ? 'disabled title="Сначала передайте учеников другому куратору"' : ''}>Удалить</button>
+          </div>
+        </div>
+      </div>`;
+    }).join('')}
+    <div class="crm-hint">⚠️ В демо пароли показаны в открытом виде для наглядности. В реальной системе так делать не стоит — правильный паттерн: сброс пароля, а не его просмотр админом.</div>`;
+
+    el.querySelectorAll('.stage-days-input').forEach(inp => {
+      inp.addEventListener('change', e => {
+        const idx = parseInt(inp.dataset.stage, 10);
+        const val = parseInt(e.target.value, 10);
+        if (!isNaN(val) && val > 0) stages[idx].days = val;
+        renderAdmin(); renderStudents(); renderStats();
+      });
+    });
+    el.querySelector('#newCuratorName').addEventListener('input', e => { newCuratorDraft.name = e.target.value; });
+    el.querySelector('#newCuratorLogin').addEventListener('input', e => { newCuratorDraft.login = e.target.value; });
+    el.querySelector('#newCuratorPassword').addEventListener('input', e => { newCuratorDraft.password = e.target.value; });
+    el.querySelector('#genPassBtn').addEventListener('click', () => { newCuratorDraft.password = genPassword(); el.querySelector('#newCuratorPassword').value = newCuratorDraft.password; });
+    el.querySelector('#addCuratorBtn').addEventListener('click', () => {
+      const name = newCuratorDraft.name.trim();
+      const login = newCuratorDraft.login.trim();
+      const password = newCuratorDraft.password.trim() || genPassword();
+      if (!name || !login) return;
+      curators.push({ id: 'c' + (curSeq++), name, color: palette[curators.length % palette.length], login, password, blocked: false, canMoveOthers: false, canReassign: false, seeLeads: false, seeStats: false });
+      filterCurators.add(curators[curators.length - 1].id);
+      newCuratorDraft = { name: '', login: '', password: genPassword() };
+      renderApp();
+    });
+    el.querySelectorAll('.toggle-track[data-perm]').forEach(t => {
+      t.addEventListener('click', () => {
+        const c = curatorById(t.dataset.cid);
+        c[t.dataset.perm] = !c[t.dataset.perm];
+        renderAdmin();
+      });
+    });
+    el.querySelectorAll('[data-action="toggleBlock"]').forEach(btn => {
+      btn.addEventListener('click', () => { curatorById(btn.dataset.cid).blocked = !curatorById(btn.dataset.cid).blocked; renderApp(); });
+    });
+    el.querySelectorAll('[data-action="remove"]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (btn.disabled) return;
+        curators = curators.filter(c => c.id !== btn.dataset.cid);
+        filterCurators.delete(btn.dataset.cid);
+        renderApp();
+      });
+    });
+  }
+
+  root.querySelector('#view-leads').addEventListener('click', e => {
+    const btn = e.target.closest('button'); if (!btn) return;
+    const id = btn.dataset.id;
+    if (btn.dataset.action === 'convert') { openAssignModal(id); }
+    else if (btn.dataset.action === 'snooze') { const l = leads.find(l => l.id === id); if (l) { l.pingAt = addDays(2); renderLeads(); } }
+    else if (btn.dataset.action === 'discard') { const l = leads.find(l => l.id === id); if (l) { l.archived = true; renderLeads(); } }
+    else if (btn.dataset.action === 'restore') { const l = leads.find(l => l.id === id); if (l) { l.archived = false; l.pingAt = addDays(1); renderLeads(); } }
+  });
+
+  root.querySelector('#addLeadBtn').addEventListener('click', () => {
+    const name = prompt('Имя лида:');
+    if (!name) return;
+    leads.push({ id: 'l' + Date.now(), username: '@новый', name, bullets: ['Заметки пока пустые'], price: '65к + 70', pingAt: addDays(1), archived: false });
+    renderLeads();
+  });
+
+  renderApp();
+})();
+</script>

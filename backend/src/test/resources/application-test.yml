@@ -1,0 +1,13 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
+app:
+  jwt:
+    secret: test_secret_key_at_least_32_bytes_long_for_hs256_signing
+    access-ttl-minutes: 15
+    refresh-ttl-days: 7
+    cookie-secure: false
+  cors:
+    allowed-origin: http://localhost:5173
