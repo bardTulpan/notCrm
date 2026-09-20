@@ -18,6 +18,7 @@ public record StudentDto(
         Integer postpayPercent,
         UUID createdById,
         String health,
+        long daysOnStage,
         List<NoteDto> notes
 ) {
     public record NoteDto(UUID id, String text, Integer position) {

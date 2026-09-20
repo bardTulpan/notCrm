@@ -26,8 +26,9 @@ public class LeadService {
     private final StudentStageHistoryRepository stageHistoryRepository;
     private final AuditService auditService;
 
-    public List<LeadDto> list(LeadStatus status, String search, UUID assignedCuratorId, CurrentUser user) {
-        Specification<Lead> spec = LeadSpecifications.filter(status, search, assignedCuratorId, null);
+    public List<LeadDto> list(LeadStatus status, String search, UUID assignedCuratorId,
+                               Instant pingFrom, Instant pingTo, CurrentUser user) {
+        Specification<Lead> spec = LeadSpecifications.filter(status, search, assignedCuratorId, pingFrom, pingTo);
         if (!user.isAdmin()) {
             spec = spec.and((root, query, cb) -> cb.equal(root.get("assignedCuratorId"), user.id()));
         }
@@ -96,6 +97,7 @@ public class LeadService {
         lead.setStatus(LeadStatus.ACTIVE);
         lead.setArchivedAt(null);
         lead.setArchivedById(null);
+        lead.setNextPingAt(Instant.now().plus(1, java.time.temporal.ChronoUnit.DAYS));
         leadRepository.save(lead);
         auditService.log(user.id(), "lead", id, "restore", null, toMap(lead));
     }
@@ -103,8 +105,9 @@ public class LeadService {
     @Transactional
     public LeadDto postponePing(UUID id, PostponePingRequest request, CurrentUser user) {
         Lead lead = requireFor(id, user);
-        if (request.nextPingAt().isBefore(Instant.now().minusSeconds(60))) {
-            throw new ConflictException("Ping date cannot be in the past");
+        Instant startOfToday = Instant.now().truncatedTo(java.time.temporal.ChronoUnit.DAYS);
+        if (request.nextPingAt().isBefore(startOfToday)) {
+            throw new ConflictException("Ping date cannot be earlier than today");
         }
         lead.setNextPingAt(request.nextPingAt());
         leadRepository.save(lead);
@@ -118,6 +121,9 @@ public class LeadService {
             throw new ConflictException("Lead already converted");
         }
 
+        if (user.isAdmin() && request.curatorId() == null) {
+            throw new com.pipeline.crm.common.exception.BadRequestException("curatorId is required");
+        }
         UUID curatorId = user.isAdmin() ? request.curatorId() : user.id();
 
         var firstStage = stageAccessor.firstActiveStage()
@@ -159,7 +165,7 @@ public class LeadService {
         auditService.log(user.id(), "lead", id, "convert", null,
                 java.util.Map.of("studentId", student.getId().toString()));
 
-        return StudentDtos.toDto(student);
+        return StudentDtos.toDto(student, firstStage.getNormDays());
     }
 
     private Lead requireFor(UUID id, CurrentUser user) {

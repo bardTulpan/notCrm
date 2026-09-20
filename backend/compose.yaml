@@ -7,7 +7,9 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-pipeline_user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pipeline_pass}
     ports:
-      - "${POSTGRES_PORT:-5433}:5432"
+      # Bound to loopback only — Postgres must never be reachable from the network,
+      # let alone the public internet. Only the backend (also on this host) talks to it.
+      - "127.0.0.1:${POSTGRES_PORT:-5433}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:

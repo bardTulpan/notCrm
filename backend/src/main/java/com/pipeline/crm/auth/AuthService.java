@@ -1,9 +1,12 @@
 package com.pipeline.crm.auth;
 
 import com.pipeline.crm.common.exception.ForbiddenException;
+import com.pipeline.crm.common.exception.UnauthorizedException;
 import com.pipeline.crm.config.JwtProperties;
 import com.pipeline.crm.security.CurrentUser;
 import com.pipeline.crm.security.JwtService;
+import com.pipeline.crm.security.LoginRateLimiter;
+import com.pipeline.crm.security.SecurityUtils;
 import com.pipeline.crm.user.*;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -26,21 +29,23 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final JwtProperties jwtProperties;
+    private final LoginRateLimiter rateLimiter;
 
-    public AuthResponse login(LoginRequest request, HttpServletResponse response) {
-        User user = userRepository.findByUsername(request.username())
-                .orElseThrow(() -> new ForbiddenException("Invalid credentials"));
+    public AuthResponse login(LoginRequest request, HttpServletRequest httpRequest, HttpServletResponse response) {
+        String ip = SecurityUtils.clientIp(httpRequest);
+        rateLimiter.checkAllowed(ip, request.username());
 
+        User user = userRepository.findByUsername(request.username()).orElse(null);
+        if (user == null || user.getDeletedAt() != null || !passwordEncoder.matches(request.password(), user.getPasswordHash())) {
+            rateLimiter.recordFailure(ip, request.username());
+            throw new UnauthorizedException("Invalid credentials");
+        }
         if (user.getStatus() == UserStatus.BLOCKED) {
+            rateLimiter.recordFailure(ip, request.username());
             throw new ForbiddenException("Account is blocked");
         }
-        if (user.getDeletedAt() != null) {
-            throw new ForbiddenException("Invalid credentials");
-        }
-        if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
-            throw new ForbiddenException("Invalid credentials");
-        }
 
+        rateLimiter.recordSuccess(ip, request.username());
         user.setLastLoginAt(Instant.now());
         userRepository.save(user);
 

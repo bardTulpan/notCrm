@@ -68,6 +68,9 @@ public class StudentService {
                 .filter(PipelineStage::isActive)
                 .orElseThrow(() -> new ConflictException("Stage is not active"));
 
+        if (user.isAdmin() && request.curatorId() == null) {
+            throw new com.pipeline.crm.common.exception.BadRequestException("curatorId is required");
+        }
         UUID curatorId = user.isAdmin() ? request.curatorId() : user.id();
 
         Instant now = Instant.now();
@@ -111,6 +114,17 @@ public class StudentService {
                 throw new ForbiddenException("Only admin can change cohort");
             }
             student.setCohortId(request.cohortId());
+        }
+        if (request.notes() != null) {
+            student.getNotes().clear();
+            int pos = 0;
+            for (UpdateStudentRequest.NoteDto note : request.notes()) {
+                StudentNote sn = new StudentNote();
+                sn.setStudent(student);
+                sn.setText(note.text());
+                sn.setPosition(note.position() != null ? note.position() : pos++);
+                student.getNotes().add(sn);
+            }
         }
         studentRepository.save(student);
         return toFullDto(student);
@@ -277,7 +291,7 @@ public class StudentService {
                 student.getCurrentStageId(), student.getCuratorId(), student.getCohortId(),
                 student.getStageEnteredAt(), student.getStartedAt(), student.isPaused(),
                 student.getPausedAt(), student.getPostpayPercent(), student.getCreatedById(),
-                health, notes);
+                health, HealthCalculator.daysOnStage(student), notes);
     }
 
     private StudentDto toFullDto(Student student) {

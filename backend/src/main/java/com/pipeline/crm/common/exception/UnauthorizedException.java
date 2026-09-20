@@ -1,0 +1,7 @@
+package com.pipeline.crm.common.exception;
+
+public class UnauthorizedException extends RuntimeException {
+    public UnauthorizedException(String message) {
+        super(message);
+    }
+}

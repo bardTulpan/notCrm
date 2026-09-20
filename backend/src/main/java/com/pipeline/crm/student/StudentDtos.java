@@ -7,7 +7,7 @@ public final class StudentDtos {
     private StudentDtos() {
     }
 
-    public static StudentDto toDto(Student student) {
+    public static StudentDto toDto(Student student, Integer currentStageNormDays) {
         List<StudentDto.NoteDto> notes = student.getNotes().stream()
                 .map(n -> new StudentDto.NoteDto(n.getId(), n.getText(), n.getPosition()))
                 .toList();
@@ -24,7 +24,8 @@ public final class StudentDtos {
                 student.getPausedAt(),
                 student.getPostpayPercent(),
                 student.getCreatedById(),
-                null,
+                HealthCalculator.health(student, currentStageNormDays),
+                HealthCalculator.daysOnStage(student),
                 notes);
     }
 }

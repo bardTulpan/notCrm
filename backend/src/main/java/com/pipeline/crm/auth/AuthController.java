@@ -18,8 +18,8 @@ public class AuthController {
     private final SecurityUtils securityUtils;
 
     @PostMapping("/login")
-    public AuthService.AuthResponse login(@Valid @RequestBody LoginRequest request, HttpServletResponse response) {
-        return authService.login(request, response);
+    public AuthService.AuthResponse login(@Valid @RequestBody LoginRequest request, HttpServletRequest httpRequest, HttpServletResponse response) {
+        return authService.login(request, httpRequest, response);
     }
 
     @PostMapping("/refresh")

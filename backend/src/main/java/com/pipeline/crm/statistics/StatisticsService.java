@@ -5,6 +5,7 @@ import com.pipeline.crm.cohort.CohortRepository;
 import com.pipeline.crm.pipeline.PipelineStage;
 import com.pipeline.crm.pipeline.PipelineStageRepository;
 import com.pipeline.crm.security.CurrentUser;
+import com.pipeline.crm.student.HealthCalculator;
 import com.pipeline.crm.student.Student;
 import com.pipeline.crm.student.StudentRepository;
 import com.pipeline.crm.user.User;
@@ -13,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -78,7 +80,7 @@ public class StatisticsService {
         for (Student s : students) {
             PipelineStage stage = stageRepository.findById(s.getCurrentStageId()).orElse(null);
             User curator = userRepository.findById(s.getCuratorId()).orElse(null);
-            long days = ChronoUnit.DAYS.between(s.getStageEnteredAt(), Instant.now());
+            long days = HealthCalculator.daysOnStage(s);
             result.add(new OverdueStudent(
                     s.getId(), s.getFullName(),
                     s.getCurrentStageId(),
@@ -103,14 +105,7 @@ public class StatisticsService {
             if (inCohort.isEmpty()) {
                 continue;
             }
-            List<Integer> reached = new ArrayList<>();
-            for (PipelineStage stage : stages) {
-                int count = (int) inCohort.stream()
-                        .filter(s -> stageIndex(s) >= stage.getPosition())
-                        .count();
-                reached.add(count);
-            }
-            result.add(new CohortStats(cohort.getId(), cohort.getName(), cohort.getStartDate(), inCohort.size(), reached));
+            result.add(buildCohortStats(cohort.getId(), cohort.getName(), cohort.getStartDate(), inCohort, stages));
         }
         return result;
     }
@@ -121,15 +116,54 @@ public class StatisticsService {
                 .toList();
         Cohort cohort = cohortRepository.findById(cohortId).orElse(null);
         List<PipelineStage> stages = stageRepository.findAllActiveOrdered();
+        return buildCohortStats(cohortId, cohort != null ? cohort.getName() : null,
+                cohort != null ? cohort.getStartDate() : null, students, stages);
+    }
+
+    private CohortStats buildCohortStats(UUID cohortId, String name, java.time.LocalDate startDate,
+                                          List<Student> inCohort, List<PipelineStage> stages) {
         List<Integer> reached = new ArrayList<>();
         for (PipelineStage stage : stages) {
-            int count = (int) students.stream()
+            int count = (int) inCohort.stream()
                     .filter(s -> stageIndex(s) >= stage.getPosition())
                     .count();
             reached.add(count);
         }
-        return new CohortStats(cohortId, cohort != null ? cohort.getName() : null,
-                cohort != null ? cohort.getStartDate() : null, students.size(), reached);
+
+        Integer plannedStagePosition = null;
+        if (startDate != null) {
+            long elapsed = ChronoUnit.DAYS.between(startDate.atStartOfDay(ZoneOffset.UTC).toInstant(), Instant.now());
+            plannedStagePosition = plannedStagePositionForElapsedDays(elapsed, stages);
+        }
+
+        long onTrack = 0;
+        long behind = 0;
+        for (Student s : inCohort) {
+            long individualElapsed = ChronoUnit.DAYS.between(s.getStartedAt(), Instant.now());
+            int individualPlanned = plannedStagePositionForElapsedDays(individualElapsed, stages);
+            if (stageIndex(s) >= individualPlanned) {
+                onTrack++;
+            } else {
+                behind++;
+            }
+        }
+
+        return new CohortStats(cohortId, name, startDate, inCohort.size(), reached,
+                plannedStagePosition, onTrack, behind);
+    }
+
+    private int plannedStagePositionForElapsedDays(long elapsedDays, List<PipelineStage> stagesOrdered) {
+        long sum = 0;
+        for (PipelineStage stage : stagesOrdered) {
+            if (stage.getNormDays() == null) {
+                return stage.getPosition();
+            }
+            sum += stage.getNormDays();
+            if (elapsedDays < sum) {
+                return stage.getPosition();
+            }
+        }
+        return stagesOrdered.isEmpty() ? 0 : stagesOrdered.get(stagesOrdered.size() - 1).getPosition();
     }
 
     private List<Student> visibleStudents(CurrentUser user) {
@@ -173,21 +207,11 @@ public class StatisticsService {
     }
 
     private String health(Student s) {
-        Integer norm = normDays(s);
-        if (s.isPaused()) return "paused";
-        if (norm == null) return "green";
-        long days = ChronoUnit.DAYS.between(s.getStageEnteredAt(), Instant.now());
-        double ratio = (double) days / norm;
-        if (ratio > 1.0) return "red";
-        if (ratio >= 0.7) return "yellow";
-        return "green";
+        return HealthCalculator.health(s, normDays(s));
     }
 
     private boolean isOverdue(Student s) {
-        Integer norm = normDays(s);
-        if (s.isPaused() || norm == null) return false;
-        long days = ChronoUnit.DAYS.between(s.getStageEnteredAt(), Instant.now());
-        return days > norm;
+        return HealthCalculator.isOverdue(s, normDays(s));
     }
 
     private Integer normDays(Student s) {

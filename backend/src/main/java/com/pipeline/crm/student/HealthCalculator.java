@@ -36,4 +36,8 @@ public final class HealthCalculator {
         long days = ChronoUnit.DAYS.between(student.getStageEnteredAt(), Instant.now());
         return days > normDays;
     }
+
+    public static long daysOnStage(Student student) {
+        return ChronoUnit.DAYS.between(student.getStageEnteredAt(), Instant.now());
+    }
 }

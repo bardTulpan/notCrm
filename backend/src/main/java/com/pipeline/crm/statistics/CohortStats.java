@@ -9,6 +9,9 @@ public record CohortStats(
         String name,
         LocalDate startDate,
         long total,
-        List<Integer> reachedCounts
+        List<Integer> reachedCounts,
+        Integer plannedStagePosition,
+        long onTrackCount,
+        long behindCount
 ) {
 }
