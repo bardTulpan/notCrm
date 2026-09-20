@@ -1,0 +1,86 @@
+@import 'tailwindcss';
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+@theme {
+  --font-sans: 'Inter', sans-serif;
+  --font-display: 'Space Grotesk', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+
+  --color-bg: #f5f6f8;
+  --color-surface: #ffffff;
+  --color-border: #e3e6eb;
+  --color-ink-900: #12151c;
+  --color-ink-600: #565d6d;
+  --color-ink-400: #93989f;
+  --color-accent: #2f5eff;
+  --color-accent-hover: #2649d6;
+  --color-accent-soft: #eaefff;
+  --color-warn: #e0432b;
+  --color-warn-soft: #fdeae7;
+  --color-amber: #c97a11;
+  --color-amber-soft: #fbf0de;
+  --color-success: #17875a;
+  --color-success-soft: #e4f5ee;
+  --color-pause: #7a7f8a;
+  --color-pause-soft: #eeeff1;
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: var(--color-bg);
+    color: var(--color-ink-900);
+    font-family: var(--font-sans);
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-surface border border-border rounded-xl;
+  }
+
+  .btn-primary,
+  .btn-ghost,
+  .btn-danger,
+  .btn-success {
+    @apply font-semibold text-[13px] px-4 py-2 rounded-lg cursor-pointer border transition-colors disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .btn-primary {
+    @apply bg-accent border-accent text-white hover:bg-accent-hover;
+  }
+
+  .btn-ghost {
+    @apply bg-surface border-border text-ink-600 hover:border-ink-400 hover:text-ink-900;
+  }
+
+  .btn-danger {
+    @apply bg-surface border-border text-warn hover:bg-warn-soft hover:border-warn;
+  }
+
+  .btn-success {
+    @apply bg-success-soft border-success text-success hover:bg-success hover:text-white;
+  }
+
+  .input {
+    @apply border border-border bg-surface text-[13px] px-3 py-2 rounded-lg text-ink-900 focus:outline-none focus:border-accent;
+  }
+
+  .chip {
+    @apply border border-border bg-surface text-ink-600 text-xs font-semibold px-3 py-1.5 rounded-full cursor-pointer inline-flex items-center gap-1.5;
+  }
+
+  .chip.active {
+    @apply bg-accent-soft border-accent text-accent;
+  }
+}
