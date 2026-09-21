@@ -3,9 +3,10 @@ import { Modal } from '../../components/Modal'
 import { Avatar } from '../../components/Avatar'
 import { useAuth } from '../../auth/useAuth'
 import { useCurators } from '../../hooks/useCurators'
+import { useCohorts } from '../../hooks/useCohorts'
 import { useToast, apiErrorMessage } from '../../hooks/useToast'
 import { studentsApi } from '../../api/students'
-import { formatDate } from '../../utils/dates'
+import { formatDate, toDateInputValue } from '../../utils/dates'
 import { StudentComments } from './StudentComments'
 import { StudentHistory } from './StudentHistory'
 import type { StageDto, StudentDto } from '../../types'
@@ -38,9 +39,11 @@ export function StudentDetailsModal({
 }) {
   const { user } = useAuth()
   const { curators, displayName } = useCurators()
+  const { cohorts } = useCohorts()
   const { push } = useToast()
   const isAdmin = user?.role === 'ADMIN'
   const [busy, setBusy] = useState(false)
+  const [startedAt, setStartedAt] = useState(toDateInputValue(student.startedAt))
 
   const [editing, setEditing] = useState(false)
   const [draftName, setDraftName] = useState(student.fullName)
@@ -72,6 +75,36 @@ export function StudentDetailsModal({
       onChanged()
     } catch (err) {
       push('error', apiErrorMessage(err))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function reassignCohort(newCohortId: string) {
+    setBusy(true)
+    try {
+      await studentsApi.update(student.id, { cohortId: newCohortId })
+      push('success', 'Когорта изменена')
+      onChanged()
+    } catch (err) {
+      push('error', apiErrorMessage(err))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function saveStartedAt() {
+    if (!startedAt) return
+    const iso = new Date(startedAt).toISOString()
+    if (iso === new Date(student.startedAt).toISOString()) return
+    setBusy(true)
+    try {
+      await studentsApi.update(student.id, { startedAt: iso })
+      push('success', 'Дата начала обновлена')
+      onChanged()
+    } catch (err) {
+      push('error', apiErrorMessage(err))
+      setStartedAt(toDateInputValue(student.startedAt))
     } finally {
       setBusy(false)
     }
@@ -165,6 +198,36 @@ export function StudentDetailsModal({
             </option>
           ))}
         </select>
+      </div>
+
+      <div className="flex gap-3 mb-3">
+        <label className="text-xs font-semibold text-ink-600 flex-1">
+          Когорта
+          <select
+            className="input w-full mt-1"
+            value={student.cohortId ?? ''}
+            disabled={!isAdmin || busy}
+            onChange={(e) => reassignCohort(e.target.value)}
+          >
+            {!student.cohortId && <option value="">— без когорты —</option>}
+            {cohorts.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="text-xs font-semibold text-ink-600 flex-1">
+          Дата начала
+          <input
+            className="input w-full mt-1"
+            type="date"
+            value={startedAt}
+            disabled={busy}
+            onChange={(e) => setStartedAt(e.target.value)}
+            onBlur={saveStartedAt}
+          />
+        </label>
       </div>
 
       <button
