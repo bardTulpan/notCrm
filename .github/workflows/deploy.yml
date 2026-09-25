@@ -23,6 +23,10 @@ jobs:
           cache: maven
           cache-dependency-path: backend/pom.xml
 
+      - name: Test backend
+        working-directory: backend
+        run: ./mvnw -q -B test
+
       - name: Build backend
         working-directory: backend
         run: ./mvnw -q -B -DskipTests package
@@ -57,21 +61,43 @@ jobs:
           scp -i ~/.ssh/deploy_key -r frontend/dist "$SSH_USER@$SSH_HOST:/opt/pipeline-crm/frontend/releases/dist-${RELEASE_ID}"
           echo "RELEASE_ID=${RELEASE_ID}" >> "$GITHUB_ENV"
 
-      - name: Activate release and restart
+      - name: Activate release, restart, and roll back on failure
         run: |
           ssh -i ~/.ssh/deploy_key "$SSH_USER@$SSH_HOST" bash -s <<EOF
             set -e
+
+            # Remember what was live before this deploy, so a failed health check
+            # can revert to it. This only ever swaps which application code/static
+            # files are active — it never touches the database.
+            PREV_JAR=\$(readlink -f /opt/pipeline-crm/current.jar 2>/dev/null || true)
+            PREV_FRONTEND=\$(readlink -f /opt/pipeline-crm/frontend/current 2>/dev/null || true)
+
             ln -sfn /opt/pipeline-crm/releases/crm-${RELEASE_ID}.jar /opt/pipeline-crm/current.jar
             ln -sfn /opt/pipeline-crm/frontend/releases/dist-${RELEASE_ID} /opt/pipeline-crm/frontend/current
             sudo systemctl restart pipeline-crm
+
             for i in \$(seq 1 15); do
               sleep 2
               if curl -sf http://127.0.0.1:8080/api/v1/health >/dev/null; then
-                echo "Backend healthy"
+                echo "Backend healthy on new release"
                 exit 0
               fi
             done
-            echo "Backend failed to become healthy after restart" >&2
+
+            echo "New release failed to become healthy — rolling back" >&2
+            if [ -n "\$PREV_JAR" ] && [ -f "\$PREV_JAR" ]; then
+              ln -sfn "\$PREV_JAR" /opt/pipeline-crm/current.jar
+              [ -n "\$PREV_FRONTEND" ] && ln -sfn "\$PREV_FRONTEND" /opt/pipeline-crm/frontend/current
+              sudo systemctl restart pipeline-crm
+              sleep 5
+              if curl -sf http://127.0.0.1:8080/api/v1/health >/dev/null; then
+                echo "Rolled back to previous release successfully" >&2
+              else
+                echo "Rollback also failed to come up healthy — needs manual attention" >&2
+              fi
+            else
+              echo "No previous release found to roll back to" >&2
+            fi
             exit 1
           EOF
 
