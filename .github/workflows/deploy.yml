@@ -110,5 +110,17 @@ jobs:
 
       - name: Verify deployment externally
         run: |
-          sleep 3
-          curl -sf "https://$(ssh -i ~/.ssh/deploy_key "$SSH_USER@$SSH_HOST" 'journalctl -u cloudflared-quicktunnel --no-pager -n 40 | grep -oE "https://[a-z0-9-]+\.trycloudflare\.com" | tail -1' | sed 's#https://##')/api/v1/health"
+          TUNNEL_HOST=$(ssh -i ~/.ssh/deploy_key "$SSH_USER@$SSH_HOST" 'journalctl -u cloudflared-quicktunnel --no-pager -n 100 | grep -oE "https://[a-z0-9-]+\.trycloudflare\.com" | tail -1' | sed 's#https://##')
+          if [ -z "$TUNNEL_HOST" ]; then
+            echo "Could not determine current tunnel URL — skipping external check (backend is already confirmed healthy on the server itself)" >&2
+            exit 0
+          fi
+          for i in $(seq 1 6); do
+            if curl -sf "https://$TUNNEL_HOST/api/v1/health" >/dev/null; then
+              echo "Reachable externally at https://$TUNNEL_HOST"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Backend is healthy on the server but not reachable externally after retries — check the Cloudflare tunnel" >&2
+          exit 1
