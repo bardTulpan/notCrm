@@ -64,9 +64,13 @@ npm run dev
 
 ## Миграции и схема
 
-- Flyway-миграции в `src/main/resources/db/migration/`.
+- Flyway-миграции в `src/main/resources/db/migration/` — применяются всегда (локально, в тестах, на проде).
 - `V1__initial_schema.sql` — таблицы.
 - `V2__seed_development_data.sql` — dev-данные (этапы, когорты, пользователи).
+- `src/main/resources/db/dev-seed/V3__realistic_cohort_seed_data.sql` — демо-лиды/ученики для локальной разработки.
+  Применяется, только если активен Spring-профиль `dev` (см. `SPRING_PROFILES_ACTIVE=dev` в `.env.example`).
+  Никогда не подключайте `db/dev-seed` на проде — эта миграция удаляет все существующие лиды/учеников перед
+  вставкой демо-данных.
 - Hibernate работает в режиме `ddl-auto: validate` (схему создаёт только Flyway).
 
 ## Учётные данные для локальной разработки (seed)
