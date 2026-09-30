@@ -24,12 +24,15 @@ public class JwtService {
         this.key = Keys.hmacShaKeyFor(properties.secret().getBytes(StandardCharsets.UTF_8));
     }
 
-    public String generateAccessToken(UUID userId, String username, Role role) {
+    public String generateAccessToken(UUID userId, String username, Role role, boolean seeLeads, boolean seeStats, boolean canReassign) {
         Instant now = Instant.now();
         return Jwts.builder()
                 .subject(userId.toString())
                 .claim("username", username)
                 .claim("role", role.name())
+                .claim("seeLeads", seeLeads)
+                .claim("seeStats", seeStats)
+                .claim("canReassign", canReassign)
                 .claim("type", "access")
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(now.plusSeconds(properties.accessTtlMinutes() * 60)))
@@ -61,9 +64,12 @@ public class JwtService {
         return new TokenPayload(
                 UUID.fromString(claims.getSubject()),
                 claims.get("username", String.class),
-                claims.get("role", String.class));
+                claims.get("role", String.class),
+                Boolean.TRUE.equals(claims.get("seeLeads", Boolean.class)),
+                Boolean.TRUE.equals(claims.get("seeStats", Boolean.class)),
+                Boolean.TRUE.equals(claims.get("canReassign", Boolean.class)));
     }
 
-    public record TokenPayload(UUID userId, String username, String role) {
+    public record TokenPayload(UUID userId, String username, String role, boolean seeLeads, boolean seeStats, boolean canReassign) {
     }
 }

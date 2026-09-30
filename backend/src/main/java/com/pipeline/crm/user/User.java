@@ -42,6 +42,15 @@ public class User {
     @Column(name = "last_login_at")
     private Instant lastLoginAt;
 
+    @Column(name = "see_leads", nullable = false)
+    private boolean seeLeads = true;
+
+    @Column(name = "see_stats", nullable = false)
+    private boolean seeStats = true;
+
+    @Column(name = "can_reassign", nullable = false)
+    private boolean canReassign = false;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

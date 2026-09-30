@@ -9,6 +9,9 @@ public record CreateUserRequest(
         @NotBlank String password,
         @NotBlank @Size(max = 200) String fullName,
         String avatarColor,
-        @NotNull Role role
+        @NotNull Role role,
+        Boolean seeLeads,
+        Boolean seeStats,
+        Boolean canReassign
 ) {
 }

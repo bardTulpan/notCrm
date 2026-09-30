@@ -49,7 +49,8 @@ public class AuthService {
         user.setLastLoginAt(Instant.now());
         userRepository.save(user);
 
-        String access = jwtService.generateAccessToken(user.getId(), user.getUsername(), user.getRole());
+        String access = jwtService.generateAccessToken(user.getId(), user.getUsername(), user.getRole(),
+                user.isSeeLeads(), user.isSeeStats(), user.isCanReassign());
         String refresh = jwtService.generateRefreshToken(user.getId());
         setRefreshCookie(response, refresh);
 
@@ -76,7 +77,8 @@ public class AuthService {
             throw new ForbiddenException("Account is blocked");
         }
 
-        String access = jwtService.generateAccessToken(user.getId(), user.getUsername(), user.getRole());
+        String access = jwtService.generateAccessToken(user.getId(), user.getUsername(), user.getRole(),
+                user.isSeeLeads(), user.isSeeStats(), user.isCanReassign());
         String newRefresh = jwtService.generateRefreshToken(user.getId());
         setRefreshCookie(response, newRefresh);
 
@@ -135,7 +137,8 @@ public class AuthService {
     }
 
     private AuthUserDto toDto(User user) {
-        return new AuthUserDto(user.getId(), user.getUsername(), user.getFullName(), user.getRole(), user.getAvatarColor());
+        return new AuthUserDto(user.getId(), user.getUsername(), user.getFullName(), user.getRole(), user.getAvatarColor(),
+                user.isSeeLeads(), user.isSeeStats(), user.isCanReassign());
     }
 
     public record AuthResponse(String accessToken, AuthUserDto user) {

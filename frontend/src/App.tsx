@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { ProtectedRoute } from './auth/ProtectedRoute'
 import { RoleRoute } from './auth/RoleRoute'
+import { PermissionRoute } from './auth/PermissionRoute'
 import { AppLayout } from './pages/layout/AppLayout'
 import { LoginPage } from './pages/LoginPage'
 import { LeadsPage } from './pages/LeadsPage'
@@ -19,9 +20,23 @@ export default function App() {
           </ProtectedRoute>
         }
       >
-        <Route path="/leads" element={<LeadsPage />} />
+        <Route
+          path="/leads"
+          element={
+            <PermissionRoute permission="seeLeads">
+              <LeadsPage />
+            </PermissionRoute>
+          }
+        />
         <Route path="/students" element={<StudentsPage />} />
-        <Route path="/statistics" element={<StatisticsPage />} />
+        <Route
+          path="/statistics"
+          element={
+            <PermissionRoute permission="seeStats">
+              <StatisticsPage />
+            </PermissionRoute>
+          }
+        />
         <Route
           path="/admin"
           element={

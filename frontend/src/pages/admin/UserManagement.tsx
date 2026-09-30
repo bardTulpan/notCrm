@@ -33,6 +33,15 @@ export function UserManagement({ users, onChanged }: { users: UserDto[]; onChang
     }
   }
 
+  async function togglePermission(user: UserDto, key: 'seeLeads' | 'seeStats' | 'canReassign') {
+    try {
+      await usersApi.update(user.id, { [key]: !user[key] })
+      onChanged()
+    } catch (err) {
+      push('error', apiErrorMessage(err))
+    }
+  }
+
   return (
     <div>
       <div className="flex items-center justify-between mb-2.5">
@@ -58,6 +67,22 @@ export function UserManagement({ users, onChanged }: { users: UserDto[]; onChang
             </div>
             <span className="font-mono text-[11px] text-ink-600">логин: {u.username}</span>
           </div>
+          {u.role === 'CURATOR' && (
+            <div className="flex flex-wrap gap-4 pt-2.5 pb-2.5 border-t border-border">
+              {(
+                [
+                  ['seeLeads', 'Видит вкладку «Лиды»'],
+                  ['seeStats', 'Видит вкладку «Статистика»'],
+                  ['canReassign', 'Может переназначать куратора'],
+                ] as const
+              ).map(([key, label]) => (
+                <label key={key} className="flex items-center gap-1.5 text-xs text-ink-600 cursor-pointer select-none">
+                  <input type="checkbox" checked={u[key]} onChange={() => togglePermission(u, key)} />
+                  {label}
+                </label>
+              ))}
+            </div>
+          )}
           <div className="flex items-center justify-between pt-2.5 border-t border-border">
             <button className="btn-ghost" onClick={() => setResetTarget(u)}>
               Сбросить пароль

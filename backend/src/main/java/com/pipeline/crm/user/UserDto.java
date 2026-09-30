@@ -11,6 +11,9 @@ public record UserDto(
         Role role,
         UserStatus status,
         Instant lastLoginAt,
-        Instant createdAt
+        Instant createdAt,
+        boolean seeLeads,
+        boolean seeStats,
+        boolean canReassign
 ) {
 }

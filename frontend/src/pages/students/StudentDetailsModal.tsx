@@ -42,15 +42,14 @@ export function StudentDetailsModal({
   const { cohorts } = useCohorts()
   const { push } = useToast()
   const isAdmin = user?.role === 'ADMIN'
+  const canReassignCurator = isAdmin || !!user?.canReassign
   const [busy, setBusy] = useState(false)
   const [startedAt, setStartedAt] = useState(toDateInputValue(student.startedAt))
 
   const [editing, setEditing] = useState(false)
   const [draftName, setDraftName] = useState(student.fullName)
   const [draftPostpay, setDraftPostpay] = useState(student.postpayPercent?.toString() ?? '')
-  const [draftNotes, setDraftNotes] = useState<string[]>(
-    student.notes.length ? student.notes.map((n) => n.text) : [''],
-  )
+  const [draftNotesText, setDraftNotesText] = useState(student.notes.map((n) => n.text).join('\n'))
 
   const cur = displayName(student.curatorId)
 
@@ -113,15 +112,8 @@ export function StudentDetailsModal({
   function startEditing() {
     setDraftName(student.fullName)
     setDraftPostpay(student.postpayPercent?.toString() ?? '')
-    setDraftNotes(student.notes.length ? student.notes.map((n) => n.text) : [''])
+    setDraftNotesText(student.notes.map((n) => n.text).join('\n'))
     setEditing(true)
-  }
-
-  function updateNote(idx: number, value: string) {
-    setDraftNotes((prev) => prev.map((n, i) => (i === idx ? value : n)))
-  }
-  function removeNote(idx: number) {
-    setDraftNotes((prev) => prev.filter((_, i) => i !== idx))
   }
 
   async function saveEdits() {
@@ -131,7 +123,11 @@ export function StudentDetailsModal({
       await studentsApi.update(student.id, {
         fullName: draftName.trim(),
         postpayPercent: draftPostpay ? Number(draftPostpay) : undefined,
-        notes: draftNotes.filter((n) => n.trim()).map((text, position) => ({ text: text.trim(), position })),
+        notes: draftNotesText
+          .split('\n')
+          .map((line) => line.trim().replace(/^[•\-*]\s*/, ''))
+          .filter(Boolean)
+          .map((text, position) => ({ text, position })),
       })
       push('success', 'Данные ученика обновлены')
       setEditing(false)
@@ -188,7 +184,7 @@ export function StudentDetailsModal({
         <select
           className="input"
           value={student.curatorId}
-          disabled={!isAdmin || busy}
+          disabled={!canReassignCurator || busy}
           onChange={(e) => reassign(e.target.value)}
         >
           {!curators.find((c) => c.id === student.curatorId) && <option value={student.curatorId}>{cur.name}</option>}
@@ -249,17 +245,13 @@ export function StudentDetailsModal({
 
       {editing ? (
         <div className="flex flex-col gap-1.5">
-          {draftNotes.map((n, idx) => (
-            <div key={idx} className="flex gap-1.5">
-              <input className="input flex-1" value={n} onChange={(e) => updateNote(idx, e.target.value)} />
-              <button type="button" className="btn-ghost px-2" onClick={() => removeNote(idx)}>
-                ✕
-              </button>
-            </div>
-          ))}
-          <button type="button" className="btn-ghost self-start" onClick={() => setDraftNotes((prev) => [...prev, ''])}>
-            + строка описания
-          </button>
+          <textarea
+            className="input min-h-[6rem] resize-y"
+            rows={4}
+            value={draftNotesText}
+            onChange={(e) => setDraftNotesText(e.target.value)}
+            placeholder={'Каждая строка — отдельный пункт описания'}
+          />
           <div className="flex justify-end gap-2 mt-2">
             <button className="btn-ghost" onClick={() => setEditing(false)} disabled={busy}>
               Отмена

@@ -9,6 +9,9 @@ public record AuthUserDto(
         String username,
         String fullName,
         Role role,
-        String avatarColor
+        String avatarColor,
+        boolean seeLeads,
+        boolean seeStats,
+        boolean canReassign
 ) {
 }

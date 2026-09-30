@@ -11,6 +11,9 @@ export interface AuthUserDto {
   fullName: string
   role: Role
   avatarColor: string | null
+  seeLeads: boolean
+  seeStats: boolean
+  canReassign: boolean
 }
 
 export interface AuthResponse {
@@ -27,6 +30,9 @@ export interface UserDto {
   status: UserStatus
   lastLoginAt: string | null
   createdAt: string
+  seeLeads: boolean
+  seeStats: boolean
+  canReassign: boolean
 }
 
 export interface CreateUserRequest {
@@ -35,11 +41,17 @@ export interface CreateUserRequest {
   fullName: string
   avatarColor?: string | null
   role: Role
+  seeLeads?: boolean
+  seeStats?: boolean
+  canReassign?: boolean
 }
 
 export interface UpdateUserRequest {
   fullName?: string
   avatarColor?: string | null
+  seeLeads?: boolean
+  seeStats?: boolean
+  canReassign?: boolean
 }
 
 export interface StageDto {

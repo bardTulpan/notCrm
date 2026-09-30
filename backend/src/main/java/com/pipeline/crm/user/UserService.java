@@ -44,6 +44,9 @@ public class UserService {
         user.setAvatarColor(request.avatarColor());
         user.setRole(request.role());
         user.setStatus(UserStatus.ACTIVE);
+        user.setSeeLeads(request.seeLeads() == null || request.seeLeads());
+        user.setSeeStats(request.seeStats() == null || request.seeStats());
+        user.setCanReassign(request.canReassign() != null && request.canReassign());
         userRepository.save(user);
 
         auditService.log(actor.id(), "user", user.getId(), "create", null, safe(user));
@@ -58,6 +61,15 @@ public class UserService {
         }
         if (request.avatarColor() != null) {
             user.setAvatarColor(request.avatarColor());
+        }
+        if (request.seeLeads() != null) {
+            user.setSeeLeads(request.seeLeads());
+        }
+        if (request.seeStats() != null) {
+            user.setSeeStats(request.seeStats());
+        }
+        if (request.canReassign() != null) {
+            user.setCanReassign(request.canReassign());
         }
         userRepository.save(user);
         auditService.log(actor.id(), "user", id, "update", null, safe(user));

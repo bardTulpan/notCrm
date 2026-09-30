@@ -2,15 +2,16 @@ import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../../auth/useAuth'
 import { Avatar } from '../../components/Avatar'
 
-const TABS = [
-  { to: '/leads', label: 'Лиды' },
-  { to: '/students', label: 'Ученики' },
-  { to: '/statistics', label: 'Статистика' },
-]
-
 export function AppLayout() {
   const { user, logout } = useAuth()
   const isAdmin = user?.role === 'ADMIN'
+
+  const tabs = [
+    ...(isAdmin || user?.seeLeads ? [{ to: '/leads', label: 'Лиды' }] : []),
+    { to: '/students', label: 'Ученики' },
+    ...(isAdmin || user?.seeStats ? [{ to: '/statistics', label: 'Статистика' }] : []),
+    ...(isAdmin ? [{ to: '/admin', label: 'Админка' }] : []),
+  ]
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -20,7 +21,7 @@ export function AppLayout() {
           Пайплайн
         </div>
         <div className="flex gap-1 bg-bg p-1 rounded-[10px]">
-          {[...TABS, ...(isAdmin ? [{ to: '/admin', label: 'Админка' }] : [])].map((tab) => (
+          {tabs.map((tab) => (
             <NavLink
               key={tab.to}
               to={tab.to}
