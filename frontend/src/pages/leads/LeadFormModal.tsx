@@ -3,6 +3,7 @@ import { Modal } from '../../components/Modal'
 import { useAuth } from '../../auth/useAuth'
 import { useCurators } from '../../hooks/useCurators'
 import { useToast, apiErrorMessage } from '../../hooks/useToast'
+import { useAutoListTextarea } from '../../hooks/useAutoListTextarea'
 import { leadsApi } from '../../api/leads'
 import { toDateTimeInputValue } from '../../utils/dates'
 import type { LeadDto } from '../../types'
@@ -19,15 +20,8 @@ export function LeadFormModal({ lead, onClose, onSaved }: { lead: LeadDto | null
   const [postpayPercent, setPostpayPercent] = useState<string>(lead?.postpayPercent?.toString() ?? '70')
   const [nextPingAt, setNextPingAt] = useState(toDateTimeInputValue(lead?.nextPingAt ?? new Date().toISOString()))
   const [curatorId, setCuratorId] = useState(lead?.assignedCuratorId ?? '')
-  const [notes, setNotes] = useState<string[]>(lead?.notes.map((n) => n.text) ?? [''])
+  const notes = useAutoListTextarea(lead?.notes.map((n) => n.text).join('\n') ?? '')
   const [submitting, setSubmitting] = useState(false)
-
-  function updateNote(idx: number, value: string) {
-    setNotes((prev) => prev.map((n, i) => (i === idx ? value : n)))
-  }
-  function removeNote(idx: number) {
-    setNotes((prev) => prev.filter((_, i) => i !== idx))
-  }
 
   async function onSubmit() {
     if (!name.trim()) return
@@ -40,7 +34,11 @@ export function LeadFormModal({ lead, onClose, onSaved }: { lead: LeadDto | null
         postpayPercent: postpayPercent ? Number(postpayPercent) : undefined,
         nextPingAt: nextPingAt ? new Date(nextPingAt).toISOString() : undefined,
         curatorId: user?.role === 'ADMIN' && curatorId ? curatorId : undefined,
-        notes: notes.filter((n) => n.trim()).map((text, position) => ({ text: text.trim(), position })),
+        notes: notes.value
+          .split('\n')
+          .map((line) => line.trim())
+          .filter(Boolean)
+          .map((text, position) => ({ text, position })),
       }
       if (isEdit) {
         await leadsApi.update(lead.id, payload)
@@ -117,22 +115,17 @@ export function LeadFormModal({ lead, onClose, onSaved }: { lead: LeadDto | null
             </select>
           </label>
         )}
-        <div>
-          <div className="text-xs font-semibold text-ink-600 mb-1">Заметки</div>
-          <div className="flex flex-col gap-1.5">
-            {notes.map((n, idx) => (
-              <div key={idx} className="flex gap-1.5">
-                <input className="input flex-1" value={n} onChange={(e) => updateNote(idx, e.target.value)} />
-                <button type="button" className="btn-ghost px-2" onClick={() => removeNote(idx)}>
-                  ✕
-                </button>
-              </div>
-            ))}
-          </div>
-          <button type="button" className="btn-ghost mt-1.5" onClick={() => setNotes((prev) => [...prev, ''])}>
-            + заметка
-          </button>
-        </div>
+        <label className="text-xs font-semibold text-ink-600">
+          Заметки
+          <textarea
+            ref={notes.ref}
+            className="input w-full mt-1 min-h-[6rem] resize-y"
+            rows={4}
+            value={notes.value}
+            onChange={(e) => notes.setValue(e.target.value)}
+            onKeyDown={notes.onKeyDown}
+          />
+        </label>
         <div className="flex justify-end gap-2 mt-2">
           <button className="btn-ghost" onClick={onClose}>
             Отмена
