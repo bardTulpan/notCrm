@@ -8,7 +8,6 @@ export function useCohorts() {
   const [error, setError] = useState<string | null>(null)
 
   const refetch = useCallback(() => {
-    setLoading(true)
     setError(null)
     return cohortsApi
       .list()
