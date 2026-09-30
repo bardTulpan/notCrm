@@ -8,7 +8,6 @@ export function useStages() {
   const [error, setError] = useState<string | null>(null)
 
   const refetch = useCallback(() => {
-    setLoading(true)
     setError(null)
     return stagesApi
       .list()

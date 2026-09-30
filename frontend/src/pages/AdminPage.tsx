@@ -32,7 +32,6 @@ export function AdminPage() {
   const [usersError, setUsersError] = useState<string | null>(null)
 
   const refetchUsers = useCallback(() => {
-    setUsersLoading(true)
     return usersApi
       .list()
       .then(setUsers)

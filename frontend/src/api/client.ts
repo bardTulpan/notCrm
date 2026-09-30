@@ -51,25 +51,26 @@ client.interceptors.response.use(
     if (error.response?.status === 401 && original && !original._retry && !isAuthRoute && refreshHandler) {
       original._retry = true
 
+      // Queue ourselves up before kicking off (or piggybacking on) the refresh — otherwise the
+      // request that triggers the refresh can miss its own onRefreshed() call and hang forever.
+      const tokenPromise = new Promise<string | null>((resolve) => waiters.push(resolve))
+
       if (!isRefreshing) {
         isRefreshing = true
-        try {
-          const newToken = await refreshHandler()
-          isRefreshing = false
-          onRefreshed(newToken)
-          if (!newToken) {
+        refreshHandler()
+          .then((newToken) => {
+            isRefreshing = false
+            onRefreshed(newToken)
+            if (!newToken) onAuthLost?.()
+          })
+          .catch(() => {
+            isRefreshing = false
+            onRefreshed(null)
             onAuthLost?.()
-            return Promise.reject(toApiError(error))
-          }
-        } catch {
-          isRefreshing = false
-          onRefreshed(null)
-          onAuthLost?.()
-          return Promise.reject(toApiError(error))
-        }
+          })
       }
 
-      const token = await new Promise<string | null>((resolve) => waiters.push(resolve))
+      const token = await tokenPromise
       if (!token) {
         return Promise.reject(toApiError(error))
       }
