@@ -6,6 +6,7 @@ import { useCohorts } from '../../hooks/useCohorts'
 import { useToast, apiErrorMessage } from '../../hooks/useToast'
 import { leadsApi } from '../../api/leads'
 import { toDateInputValue } from '../../utils/dates'
+import { pickCohortIdForDate } from '../../utils/cohorts'
 import type { LeadDto } from '../../types'
 
 export function ConvertLeadModal({ lead, onClose, onConverted }: { lead: LeadDto; onClose: () => void; onConverted: () => void }) {
@@ -16,10 +17,13 @@ export function ConvertLeadModal({ lead, onClose, onConverted }: { lead: LeadDto
   const isAdmin = user?.role === 'ADMIN'
 
   const [curatorId, setCuratorId] = useState('')
-  const [cohortId, setCohortId] = useState('')
   const [postpayPercent, setPostpayPercent] = useState<string>(lead.postpayPercent?.toString() ?? '70')
   const [startedAt, setStartedAt] = useState(toDateInputValue(new Date().toISOString()))
   const [submitting, setSubmitting] = useState(false)
+
+  // Cohort isn't a field the curator picks here — it's derived from the start date
+  // (for cohort-funnel reporting) and can be corrected later from the student's card if needed.
+  const cohortId = pickCohortIdForDate(startedAt, cohorts)
 
   async function onSubmit() {
     if (isAdmin && !curatorId) {
@@ -60,17 +64,6 @@ export function ConvertLeadModal({ lead, onClose, onConverted }: { lead: LeadDto
             </select>
           </label>
         )}
-        <label className="text-xs font-semibold text-ink-600">
-          Когорта
-          <select className="input w-full mt-1" value={cohortId} onChange={(e) => setCohortId(e.target.value)}>
-            <option value="">— без когорты —</option>
-            {cohorts.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </label>
         <div className="flex gap-3">
           <label className="text-xs font-semibold text-ink-600 flex-1">
             Постоплата, %
