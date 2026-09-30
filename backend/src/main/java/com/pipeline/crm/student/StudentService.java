@@ -105,7 +105,7 @@ public class StudentService {
         if (request.startedAt() != null) student.setStartedAt(request.startedAt());
         if (request.stageEnteredAt() != null) student.setStageEnteredAt(request.stageEnteredAt());
         if (request.curatorId() != null) {
-            if (!user.isAdmin()) {
+            if (!user.isAdmin() && !user.canReassign()) {
                 throw new ForbiddenException("Only admin can reassign curator");
             }
             reassignCurator(student, request.curatorId(), user);
@@ -240,10 +240,10 @@ public class StudentService {
 
     @Transactional
     public StudentDto assignCurator(UUID id, AssignCuratorRequest request, CurrentUser user) {
-        if (!user.isAdmin()) {
+        Student student = requireFor(id, user);
+        if (!user.isAdmin() && !user.canReassign()) {
             throw new ForbiddenException("Only admin can reassign curator");
         }
-        Student student = requireFor(id, user);
         reassignCurator(student, request.curatorId(), user);
         studentRepository.save(student);
         return toFullDto(student);

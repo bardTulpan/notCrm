@@ -20,7 +20,10 @@ public final class UserDtos {
                 user.getRole(),
                 user.getStatus(),
                 user.getLastLoginAt(),
-                user.getCreatedAt()
+                user.getCreatedAt(),
+                user.isSeeLeads(),
+                user.isSeeStats(),
+                user.isCanReassign()
         );
     }
 

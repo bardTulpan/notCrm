@@ -29,7 +29,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String token = header.substring(7);
             try {
                 JwtService.TokenPayload payload = jwtService.parse(token, "access");
-                CurrentUser user = new CurrentUser(payload.userId(), payload.username(), Role.valueOf(payload.role()));
+                CurrentUser user = new CurrentUser(payload.userId(), payload.username(), Role.valueOf(payload.role()),
+                        payload.seeLeads(), payload.seeStats(), payload.canReassign());
                 CurrentUserAuthentication auth = new CurrentUserAuthentication(user);
                 SecurityContextHolder.getContext().setAuthentication(auth);
             } catch (Exception ignored) {

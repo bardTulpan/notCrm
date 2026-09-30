@@ -1,5 +1,6 @@
 package com.pipeline.crm.statistics;
 
+import com.pipeline.crm.common.exception.ForbiddenException;
 import com.pipeline.crm.security.CurrentUser;
 import com.pipeline.crm.security.SecurityUtils;
 import lombok.RequiredArgsConstructor;
@@ -47,6 +48,10 @@ public class StatisticsController {
     }
 
     private CurrentUser actor() {
-        return securityUtils.currentUser();
+        CurrentUser user = securityUtils.currentUser();
+        if (!user.isAdmin() && !user.seeStats()) {
+            throw new ForbiddenException("No access to statistics");
+        }
+        return user;
     }
 }

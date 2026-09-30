@@ -1,5 +1,6 @@
 package com.pipeline.crm.lead;
 
+import com.pipeline.crm.common.exception.ForbiddenException;
 import com.pipeline.crm.security.CurrentUser;
 import com.pipeline.crm.security.SecurityUtils;
 import com.pipeline.crm.student.StudentDto;
@@ -70,6 +71,10 @@ public class LeadController {
     }
 
     private CurrentUser actor() {
-        return securityUtils.currentUser();
+        CurrentUser user = securityUtils.currentUser();
+        if (!user.isAdmin() && !user.seeLeads()) {
+            throw new ForbiddenException("No access to leads");
+        }
+        return user;
     }
 }

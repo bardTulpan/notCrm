@@ -4,6 +4,9 @@ import jakarta.validation.constraints.Size;
 
 public record UpdateUserRequest(
         @Size(max = 200) String fullName,
-        String avatarColor
+        String avatarColor,
+        Boolean seeLeads,
+        Boolean seeStats,
+        Boolean canReassign
 ) {
 }
