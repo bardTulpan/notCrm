@@ -5,6 +5,7 @@ import { useAuth } from '../../auth/useAuth'
 import { useCurators } from '../../hooks/useCurators'
 import { useCohorts } from '../../hooks/useCohorts'
 import { useToast, apiErrorMessage } from '../../hooks/useToast'
+import { useAutoListTextarea } from '../../hooks/useAutoListTextarea'
 import { studentsApi } from '../../api/students'
 import { formatDate, toDateInputValue } from '../../utils/dates'
 import { StudentComments } from './StudentComments'
@@ -49,7 +50,7 @@ export function StudentDetailsModal({
   const [editing, setEditing] = useState(false)
   const [draftName, setDraftName] = useState(student.fullName)
   const [draftPostpay, setDraftPostpay] = useState(student.postpayPercent?.toString() ?? '')
-  const [draftNotesText, setDraftNotesText] = useState(student.notes.map((n) => n.text).join('\n'))
+  const draftNotes = useAutoListTextarea(student.notes.map((n) => n.text).join('\n'))
 
   const cur = displayName(student.curatorId)
 
@@ -112,7 +113,7 @@ export function StudentDetailsModal({
   function startEditing() {
     setDraftName(student.fullName)
     setDraftPostpay(student.postpayPercent?.toString() ?? '')
-    setDraftNotesText(student.notes.map((n) => n.text).join('\n'))
+    draftNotes.setValue(student.notes.map((n) => n.text).join('\n'))
     setEditing(true)
   }
 
@@ -123,9 +124,9 @@ export function StudentDetailsModal({
       await studentsApi.update(student.id, {
         fullName: draftName.trim(),
         postpayPercent: draftPostpay ? Number(draftPostpay) : undefined,
-        notes: draftNotesText
+        notes: draftNotes.value
           .split('\n')
-          .map((line) => line.trim().replace(/^[•\-*]\s*/, ''))
+          .map((line) => line.trim())
           .filter(Boolean)
           .map((text, position) => ({ text, position })),
       })
@@ -246,11 +247,13 @@ export function StudentDetailsModal({
       {editing ? (
         <div className="flex flex-col gap-1.5">
           <textarea
+            ref={draftNotes.ref}
             className="input min-h-[6rem] resize-y"
             rows={4}
-            value={draftNotesText}
-            onChange={(e) => setDraftNotesText(e.target.value)}
-            placeholder={'Каждая строка — отдельный пункт описания'}
+            value={draftNotes.value}
+            onChange={(e) => draftNotes.setValue(e.target.value)}
+            onKeyDown={draftNotes.onKeyDown}
+            placeholder={'Описание ученика'}
           />
           <div className="flex justify-end gap-2 mt-2">
             <button className="btn-ghost" onClick={() => setEditing(false)} disabled={busy}>
@@ -262,12 +265,9 @@ export function StudentDetailsModal({
           </div>
         </div>
       ) : student.notes.length > 0 ? (
-        <div className="text-[13px] text-ink-600 leading-relaxed">
+        <div className="text-[13px] text-ink-600 leading-relaxed whitespace-pre-wrap">
           {student.notes.map((n) => (
-            <div key={n.id}>
-              <span className="text-ink-400 mr-1.5">·</span>
-              {n.text}
-            </div>
+            <div key={n.id}>{n.text}</div>
           ))}
         </div>
       ) : (

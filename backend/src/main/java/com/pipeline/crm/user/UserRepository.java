@@ -14,7 +14,7 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     boolean existsByUsername(String username);
 
-    @Query("SELECT u FROM User u WHERE u.deletedAt IS NULL")
+    @Query("SELECT u FROM User u WHERE u.deletedAt IS NULL ORDER BY u.createdAt, u.id")
     List<User> findAllActive();
 
     @Query("SELECT COUNT(u) FROM User u WHERE u.role = :role AND u.status = :status AND u.deletedAt IS NULL")
