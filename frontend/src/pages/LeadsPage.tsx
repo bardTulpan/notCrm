@@ -25,7 +25,6 @@ export function LeadsPage() {
   const [archivedCount, setArchivedCount] = useState(0)
 
   const refetch = useCallback(() => {
-    setLoading(true)
     setError(null)
     return leadsApi
       .list({ status: view === 'active' ? 'ACTIVE' : 'ARCHIVED', search: query || undefined })

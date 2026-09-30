@@ -25,7 +25,6 @@ export function StudentsPage() {
   const [openStudentId, setOpenStudentId] = useState<string | null>(null)
 
   const refetch = useCallback(() => {
-    setLoading(true)
     setError(null)
     return studentsApi
       .list({ onlyOverdue: onlyStuck, search: query || undefined })

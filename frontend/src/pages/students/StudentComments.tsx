@@ -14,7 +14,6 @@ export function StudentComments({ studentId, authorName }: { studentId: string; 
   const [editing, setEditing] = useState<{ id: string; text: string } | null>(null)
 
   function refetch() {
-    setLoading(true)
     studentsApi
       .comments(studentId)
       .then(setComments)

@@ -11,40 +11,48 @@ Java 21, Spring Boot 3, Spring Security (JWT), Spring Data JPA, PostgreSQL, Flyw
 
 ## Локальный запуск
 
-### 1. Настройте окружение
+Команды используют `.env.example` напрямую: создавать или перезаписывать `.env` не нужно. Если есть рабочий `backend/.env`, подставьте его вместо `.env.example` в командах.
+
+### 1. Поднимите PostgreSQL
 
 ```bash
-cp .env.example .env
+cd "/Users/vasa/Documents/Codex Folder/notCrm/backend"
+docker compose --env-file .env.example up -d
+docker compose --env-file .env.example ps
 ```
 
-Отредактируйте `.env` под себя. Для локальной разработки уже заданы значения по умолчанию
-(БД на порту `5434`, чтобы не конфликтовать с другими проектами на `5432`).
+Дождитесь статуса `healthy`. В `.env.example` база доступна на `localhost:5434`.
 
-### 2. Поднимите PostgreSQL
-
-```bash
-docker compose up -d
-```
-
-### 3. Запустите приложение
-
-Переменные приложения Spring Boot читает из окружения (не из `.env` напрямую), поэтому
-экспортируйте их перед запуском:
+### 2. Запустите backend в отдельном терминале
 
 ```bash
-set -a && source .env && set +a
+cd "/Users/vasa/Documents/Codex Folder/notCrm/backend"
+# Для установленного через Homebrew OpenJDK 21 на macOS
+export JAVA_HOME=/opt/homebrew/opt/openjdk@21
+export PATH="$JAVA_HOME/bin:$PATH"
+set -a
+source .env.example
+set +a
 ./mvnw spring-boot:run
 ```
 
-Приложение стартует на порту `8080`. Если порт занят, переопределите:
-`SERVER_PORT=8081 ./mvnw spring-boot:run`.
-
-### 4. Проверьте
+Если Java 21 уже доступна в `PATH`, первые две строки можно пропустить. Проверьте API:
 
 ```bash
 curl http://localhost:8080/api/v1/health
 # {"status":"ok"}
 ```
+
+### 3. Запустите frontend в другом терминале
+
+```bash
+cd "/Users/vasa/Documents/Codex Folder/notCrm/frontend"
+npm run dev
+```
+
+Откройте `http://localhost:5173/login`. Если Vite выбрал `5174`, остановите backend и запустите его с `FRONTEND_ORIGIN=http://localhost:5174 ./mvnw spring-boot:run`, чтобы CORS разрешал фактический порт.
+
+Перед запуском проверьте, не работают ли сервисы уже: `lsof -nP -iTCP:5173 -sTCP:LISTEN` и `lsof -nP -iTCP:8080 -sTCP:LISTEN`. Не запускайте второй экземпляр на занятых портах. Не используйте `docker compose down -v`: эта команда удалит том PostgreSQL с локальными данными. Смена `POSTGRES_PASSWORD` в env-файле сама по себе не меняет пароль роли в уже созданном томе.
 
 ## Тесты
 
