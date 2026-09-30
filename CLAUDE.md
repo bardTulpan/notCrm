@@ -51,6 +51,23 @@ No test suite is configured on the frontend yet.
 - Never run `docker compose down -v` — it deletes the Postgres volume (local data). Changing `POSTGRES_PASSWORD` in the env file does not change the already-provisioned role password inside an existing volume.
 - Seed logins: `admin`/`admin123` (ADMIN), `anya.t`/`curator1` and `igor.l`/`curator2` (CURATOR, active), `sveta.r`/`curator3` (CURATOR, blocked).
 
+### Git workflow — read this if you're about to commit
+
+The user routinely runs **multiple Claude Code sessions in parallel on this exact same checkout** (`/Users/vasa/Documents/Codex Folder/notCrm`) — they all share one physical `.git`, one working tree, one current branch. Another session's checkout, commit, or uncommitted changes can appear underneath you mid-task. This has already caused a real collision once (two sessions both landed commits on a branch literally named `feature/kanban-drag-reorder`).
+
+- **Never push or commit directly to `main`.** It's blocked by Claude Code's own auto-mode classifier (a safety guardrail, not a bug to work around) and it's the wrong flow regardless — always go through a branch + PR.
+- **Pick a branch name specific to your actual change**, not a generic one another session could plausibly also pick (avoid bare `feature/...`, `fix/...`; prefix with what you're actually doing, e.g. `feature/curator-permissions`).
+- **Before touching git, check `git status`.** If there are uncommitted changes that aren't obviously yours, or you're not sure what branch you're on / whether it's up to date — don't `git checkout` in the shared working tree (you can carry someone else's in-progress edits across, or strand them). Instead create an **isolated worktree** straight from `origin/main`:
+  ```bash
+  git fetch origin
+  git worktree add /tmp/<something-unique> -b <your-branch-name> origin/main
+  cd /tmp/<something-unique>
+  # make your changes here, commit, push — this never touches the shared checkout
+  ```
+- Stage specific files (`git add <paths>`), never `git add -A`/`-A .` — the shared working tree will usually have other sessions' unrelated changes sitting in it.
+- Flow once committed: `git push -u origin <branch>` → `gh pr create --base main --head <branch> ...` → `gh pr merge <number> --merge` (only merge with the user's explicit go-ahead — merging triggers a real production deploy, see below).
+- No PR-time CI exists on this repo (`.github/workflows/deploy.yml` only triggers on `push: branches: [main]`) — `./mvnw test` only ever runs for real as the first step of that same deploy job. This is fail-safe by step order: if tests fail, every later step (build, SSH, activate-on-server) is skipped, so a red run never reaches the production server, it just doesn't deploy. Use `gh run list --branch main` / `gh run view <id>` to watch it after merging.
+
 ## Architecture
 
 ### Backend — modular monolith, packages under `com.pipeline.crm.*`
