@@ -26,6 +26,7 @@ public final class StudentDtos {
                 student.getCreatedById(),
                 HealthCalculator.health(student, currentStageNormDays),
                 HealthCalculator.daysOnStage(student),
+                student.getStagePosition(),
                 notes);
     }
 }

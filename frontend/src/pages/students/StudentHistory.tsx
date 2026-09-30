@@ -28,11 +28,9 @@ export function StudentHistory({
   const stageName = (id: string) => stages.find((s) => s.id === id)?.name ?? '—'
 
   const events: Event[] = []
-  const allStageEvents = [
-    ...history.stages,
-    { stageId: student.currentStageId, enteredAt: student.stageEnteredAt, exitedAt: null, changedById: '' },
-  ]
-  for (const h of allStageEvents) {
+  // The backend already includes an open (exitedAt: null) entry for the current stage —
+  // no need to synthesize one, that used to double it up.
+  for (const h of history.stages) {
     const isNow = h.exitedAt === null
     const dur = isNow ? student.daysOnStage : Math.round((new Date(h.exitedAt!).getTime() - new Date(h.enteredAt).getTime()) / 86_400_000)
     events.push({

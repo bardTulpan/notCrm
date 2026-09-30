@@ -83,6 +83,7 @@ public class StudentService {
         student.setStartedAt(request.startedAt() != null ? request.startedAt() : now);
         student.setPostpayPercent(request.postpayPercent());
         student.setCreatedById(user.id());
+        student.setStagePosition(studentRepository.nextStagePosition(request.currentStageId()));
         studentRepository.save(student);
 
         StudentStageHistory history = new StudentStageHistory();
@@ -158,6 +159,62 @@ public class StudentService {
         stageHistoryRepository.save(history);
 
         auditService.log(user.id(), "student", id, "move-stage", null, request.stageId().toString());
+        return toFullDto(student);
+    }
+
+    /**
+     * Drives the Kanban drag gesture: changes stage (if needed) and always places the card at the
+     * requested position within the target stage. Position-only reorders (same stage) are not
+     * audited — only actual stage transitions are, matching moveStage's audit semantics.
+     */
+    @Transactional
+    public StudentDto reorder(UUID id, ReorderRequest request, CurrentUser user) {
+        Student student = requireFor(id, user);
+        PipelineStage stage = stageRepository.findById(request.stageId())
+                .filter(PipelineStage::isActive)
+                .orElseThrow(() -> new ConflictException("Stage is not active"));
+
+        boolean stageChanged = !request.stageId().equals(student.getCurrentStageId());
+        if (stageChanged) {
+            stageHistoryRepository.findByStudentIdAndExitedAtIsNull(student.getId()).ifPresent(open -> {
+                open.setExitedAt(Instant.now());
+                stageHistoryRepository.save(open);
+            });
+
+            student.setCurrentStageId(request.stageId());
+            student.setStageEnteredAt(Instant.now());
+
+            StudentStageHistory history = new StudentStageHistory();
+            history.setStudentId(student.getId());
+            history.setStageId(request.stageId());
+            history.setEnteredAt(student.getStageEnteredAt());
+            history.setChangedById(user.id());
+            stageHistoryRepository.save(history);
+
+            auditService.log(user.id(), "student", id, "move-stage", null, request.stageId().toString());
+        }
+
+        List<Student> siblings = studentRepository
+                .findByCurrentStageIdAndDeletedAtIsNullOrderByStagePositionAsc(request.stageId()).stream()
+                .filter(s -> !s.getId().equals(student.getId()))
+                .collect(java.util.stream.Collectors.toCollection(java.util.ArrayList::new));
+
+        int insertAt = siblings.size();
+        if (request.beforeStudentId() != null) {
+            for (int i = 0; i < siblings.size(); i++) {
+                if (siblings.get(i).getId().equals(request.beforeStudentId())) {
+                    insertAt = i;
+                    break;
+                }
+            }
+        }
+        siblings.add(insertAt, student);
+
+        for (int i = 0; i < siblings.size(); i++) {
+            siblings.get(i).setStagePosition(i);
+        }
+        studentRepository.saveAll(siblings);
+
         return toFullDto(student);
     }
 
@@ -291,7 +348,7 @@ public class StudentService {
                 student.getCurrentStageId(), student.getCuratorId(), student.getCohortId(),
                 student.getStageEnteredAt(), student.getStartedAt(), student.isPaused(),
                 student.getPausedAt(), student.getPostpayPercent(), student.getCreatedById(),
-                health, HealthCalculator.daysOnStage(student), notes);
+                health, HealthCalculator.daysOnStage(student), student.getStagePosition(), notes);
     }
 
     private StudentDto toFullDto(Student student) {

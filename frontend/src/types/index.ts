@@ -143,6 +143,7 @@ export interface StudentDto {
   createdById: string
   health: Health
   daysOnStage: number
+  stagePosition: number
   notes: StudentNoteDto[]
 }
 

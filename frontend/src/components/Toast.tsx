@@ -4,10 +4,19 @@ export interface ToastItem {
   id: number
   kind: 'success' | 'error'
   text: string
+  actionLabel?: string
+  onAction?: () => void
+  durationMs: number
+}
+
+export interface ToastOptions {
+  actionLabel?: string
+  onAction?: () => void
+  durationMs?: number
 }
 
 interface ToastContextValue {
-  push: (kind: ToastItem['kind'], text: string) => void
+  push: (kind: ToastItem['kind'], text: string, options?: ToastOptions) => void
 }
 
 // eslint-disable-next-line react-refresh/only-export-components
@@ -18,13 +27,22 @@ let seq = 0
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<ToastItem[]>([])
 
-  const push = useCallback((kind: ToastItem['kind'], text: string) => {
-    const id = ++seq
-    setItems((prev) => [...prev, { id, kind, text }])
-    setTimeout(() => {
-      setItems((prev) => prev.filter((t) => t.id !== id))
-    }, 4000)
+  const dismiss = useCallback((id: number) => {
+    setItems((prev) => prev.filter((t) => t.id !== id))
   }, [])
+
+  const push = useCallback(
+    (kind: ToastItem['kind'], text: string, options?: ToastOptions) => {
+      const id = ++seq
+      const durationMs = options?.durationMs ?? 4000
+      setItems((prev) => [
+        ...prev,
+        { id, kind, text, actionLabel: options?.actionLabel, onAction: options?.onAction, durationMs },
+      ])
+      setTimeout(() => dismiss(id), durationMs)
+    },
+    [dismiss],
+  )
 
   return (
     <ToastContext.Provider value={{ push }}>
@@ -33,14 +51,39 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         {items.map((t) => (
           <div
             key={t.id}
-            className={`card px-4 py-3 text-sm shadow-lg min-w-[240px] ${
+            className={`card px-4 py-3 text-sm shadow-lg min-w-[240px] overflow-hidden relative ${
               t.kind === 'error' ? 'bg-warn-soft border-warn text-warn' : 'bg-success-soft border-success text-success'
             }`}
           >
-            {t.text}
+            <div className="flex items-center justify-between gap-3">
+              <span>{t.text}</span>
+              {t.actionLabel && t.onAction && (
+                <button
+                  className="font-semibold underline whitespace-nowrap"
+                  onClick={() => {
+                    t.onAction?.()
+                    dismiss(t.id)
+                  }}
+                >
+                  {t.actionLabel}
+                </button>
+              )}
+            </div>
+            {t.actionLabel && (
+              <div
+                className="absolute bottom-0 left-0 h-0.5 bg-current opacity-40"
+                style={{ animation: `toast-progress ${t.durationMs}ms linear forwards` }}
+              />
+            )}
           </div>
         ))}
       </div>
+      <style>{`
+        @keyframes toast-progress {
+          from { width: 100%; }
+          to { width: 0%; }
+        }
+      `}</style>
     </ToastContext.Provider>
   )
 }

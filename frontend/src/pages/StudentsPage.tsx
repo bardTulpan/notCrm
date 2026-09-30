@@ -11,6 +11,30 @@ import { KanbanBoard } from './students/KanbanBoard'
 import { StudentDetailsModal } from './students/StudentDetailsModal'
 import type { StudentDto } from '../types'
 
+/** Mirrors the backend's reorder() placement so the board updates instantly, before the server confirms. */
+function applyLocalReorder(
+  students: StudentDto[],
+  studentId: string,
+  stageId: string,
+  beforeStudentId: string | null,
+): StudentDto[] {
+  const moving = students.find((s) => s.id === studentId)
+  if (!moving) return students
+  const stageChanged = moving.currentStageId !== stageId
+  const updatedMoving: StudentDto = stageChanged
+    ? { ...moving, currentStageId: stageId, stageEnteredAt: new Date().toISOString(), daysOnStage: 0, health: 'green' }
+    : moving
+
+  const siblings = students
+    .filter((s) => s.currentStageId === stageId && s.id !== studentId)
+    .sort((a, b) => a.stagePosition - b.stagePosition)
+  const insertAt = beforeStudentId ? siblings.findIndex((s) => s.id === beforeStudentId) : -1
+  siblings.splice(insertAt === -1 ? siblings.length : insertAt, 0, updatedMoving)
+
+  const renumbered = new Map(siblings.map((s, i) => [s.id, { ...s, stagePosition: i }]))
+  return students.map((s) => renumbered.get(s.id) ?? s)
+}
+
 export function StudentsPage() {
   const { stages, loading: stagesLoading, error: stagesError } = useStages()
   const { displayName } = useCurators()
@@ -50,16 +74,34 @@ export function StudentsPage() {
     })
   }
 
-  async function moveStage(studentId: string, stageId: string) {
+  function reorderStudent(studentId: string, stageId: string, beforeStudentId: string | null) {
     const student = students.find((s) => s.id === studentId)
-    if (!student || student.currentStageId === stageId) return
-    try {
-      await studentsApi.moveStage(studentId, stageId)
-      refetch()
-    } catch (err) {
-      push('error', apiErrorMessage(err))
-      refetch()
-    }
+    if (!student) return
+    const stageChanged = student.currentStageId !== stageId
+    const originalStageId = student.currentStageId
+
+    const prevStudents = students
+    setStudents((current) => applyLocalReorder(current, studentId, stageId, beforeStudentId))
+
+    studentsApi
+      .reorder(studentId, stageId, beforeStudentId)
+      .then(() => {
+        if (stageChanged) {
+          const targetStage = stages.find((s) => s.id === stageId)
+          push('success', `${student.fullName} → ${targetStage?.name ?? 'другой этап'}`, {
+            actionLabel: 'Отменить',
+            durationMs: 5000,
+            onAction: () => {
+              studentsApi.reorder(studentId, originalStageId, null).catch(() => undefined).finally(refetch)
+            },
+          })
+        }
+        refetch()
+      })
+      .catch((err) => {
+        setStudents(prevStudents)
+        push('error', apiErrorMessage(err))
+      })
   }
 
   const visible = selectedCuratorIds.size === 0 ? students : students.filter((s) => selectedCuratorIds.has(s.curatorId))
@@ -87,7 +129,7 @@ export function StudentsPage() {
           students={visible}
           curatorName={displayName}
           onOpenStudent={setOpenStudentId}
-          onMoveStage={moveStage}
+          onReorder={reorderStudent}
         />
       )}
       {openStudent && (

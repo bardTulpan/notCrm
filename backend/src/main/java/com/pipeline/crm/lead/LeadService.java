@@ -139,6 +139,7 @@ public class LeadService {
         student.setStartedAt(request.startedAt() != null ? request.startedAt() : Instant.now());
         student.setPostpayPercent(request.postpayPercent() != null ? request.postpayPercent() : lead.getPostpayPercent());
         student.setCreatedById(user.id());
+        student.setStagePosition(studentRepository.nextStagePosition(firstStage.getId()));
         if (lead.getNotes() != null) {
             int pos = 0;
             for (LeadNote note : lead.getNotes()) {

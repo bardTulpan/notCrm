@@ -19,6 +19,7 @@ public record StudentDto(
         UUID createdById,
         String health,
         long daysOnStage,
+        int stagePosition,
         List<NoteDto> notes
 ) {
     public record NoteDto(UUID id, String text, Integer position) {
