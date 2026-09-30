@@ -67,6 +67,7 @@ npm run dev
 - Flyway-миграции в `src/main/resources/db/migration/` — применяются всегда (локально, в тестах, на проде).
 - `V1__initial_schema.sql` — таблицы.
 - `V2__seed_development_data.sql` — dev-данные (этапы, когорты, пользователи).
+- `V4__student_stage_position.sql` — добавляет `students.stage_position` (ручной порядок карточек в колонке канбана).
 - `src/main/resources/db/dev-seed/V3__realistic_cohort_seed_data.sql` — демо-лиды/ученики для локальной разработки.
   Применяется, только если активен Spring-профиль `dev` (см. `SPRING_PROFILES_ACTIVE=dev` в `.env.example`).
   Никогда не подключайте `db/dev-seed` на проде — эта миграция удаляет все существующие лиды/учеников перед
@@ -124,7 +125,7 @@ npm run dev
 | POST | /leads/{id}/convert | owner or ADMIN |
 | GET/POST | /students | auth |
 | GET/PATCH | /students/{id} | owner or ADMIN |
-| POST | /students/{id}/move-stage, /pause, /resume | owner or ADMIN |
+| POST | /students/{id}/move-stage, /reorder, /pause, /resume | owner or ADMIN |
 | POST | /students/{id}/assign-curator | ADMIN |
 | GET | /students/{id}/history | owner or ADMIN |
 | GET/POST | /students/{id}/comments | owner or ADMIN |

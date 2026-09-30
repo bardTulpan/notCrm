@@ -29,6 +29,9 @@ export const studentsApi = {
   moveStage: (id: string, stageId: string) =>
     client.post<StudentDto>(`/students/${id}/move-stage`, { stageId }).then((r) => r.data),
 
+  reorder: (id: string, stageId: string, beforeStudentId: string | null) =>
+    client.post<StudentDto>(`/students/${id}/reorder`, { stageId, beforeStudentId }).then((r) => r.data),
+
   pause: (id: string) => client.post<StudentDto>(`/students/${id}/pause`).then((r) => r.data),
 
   resume: (id: string) => client.post<StudentDto>(`/students/${id}/resume`).then((r) => r.data),

@@ -49,6 +49,11 @@ public class StudentController {
         return studentService.moveStage(id, request, actor());
     }
 
+    @PostMapping("/{id}/reorder")
+    public StudentDto reorder(@PathVariable UUID id, @Valid @RequestBody ReorderRequest request) {
+        return studentService.reorder(id, request, actor());
+    }
+
     @PostMapping("/{id}/pause")
     public StudentDto pause(@PathVariable UUID id) {
         return studentService.pause(id, actor());

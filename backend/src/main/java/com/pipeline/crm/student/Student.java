@@ -51,6 +51,9 @@ public class Student {
     @Column(name = "postpay_percent")
     private Integer postpayPercent;
 
+    @Column(name = "stage_position", nullable = false)
+    private int stagePosition = 0;
+
     @Column(name = "created_by_id", nullable = false)
     private UUID createdById;
 
