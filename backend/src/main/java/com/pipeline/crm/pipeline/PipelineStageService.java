@@ -5,10 +5,12 @@ import com.pipeline.crm.common.exception.ConflictException;
 import com.pipeline.crm.common.exception.NotFoundException;
 import com.pipeline.crm.security.CurrentUser;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -68,11 +70,34 @@ public class PipelineStageService {
         if (ids == null || ids.size() != stageRepository.findAllActiveOrdered().size()) {
             throw new ConflictException("Reorder list must contain all active stage ids");
         }
-        for (int i = 0; i < ids.size(); i++) {
-            PipelineStage stage = require(ids.get(i));
-            stage.setPosition(i);
-            stageRepository.save(stage);
+        // pipeline_stages.position is UNIQUE (archived stages keep theirs too, and the CHECK forbids negatives), so
+        // renumbering row by row would collide mid-update. Park every stage on a free high range first, flushing,
+        // then write the final numbers: active stages in the requested order, archived ones after them.
+        List<PipelineStage> all = stageRepository.findAll(Sort.by("position"));
+        Map<UUID, PipelineStage> byId = new HashMap<>();
+        for (PipelineStage st : all) byId.put(st.getId(), st);
+        for (UUID id : ids) {
+            PipelineStage st = byId.get(id);
+            if (st == null || !st.isActive()) throw new NotFoundException("Stage not found");
         }
+        if (new HashSet<>(ids).size() != ids.size()) {
+            throw new ConflictException("Reorder list must not contain duplicates");
+        }
+
+        int base = all.stream().mapToInt(PipelineStage::getPosition).max().orElse(0) + 1000;
+        for (int i = 0; i < all.size(); i++) {
+            all.get(i).setPosition(base + i);
+        }
+        stageRepository.saveAllAndFlush(all);
+
+        int next = 0;
+        for (UUID id : ids) {
+            byId.get(id).setPosition(next++);
+        }
+        for (PipelineStage st : all) {
+            if (!ids.contains(st.getId())) st.setPosition(next++);
+        }
+        stageRepository.saveAllAndFlush(all);
         auditService.log(actor.id(), "pipelineStage", UUID.fromString("00000000-0000-0000-0000-000000000000"),
                 "reorder", null, Map.of("order", ids.toString()));
     }

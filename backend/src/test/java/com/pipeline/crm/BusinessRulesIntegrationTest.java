@@ -355,6 +355,32 @@ class BusinessRulesIntegrationTest extends AbstractIntegrationTest {
         assertThat(found).isTrue();
     }
 
+    @Test
+    void reorderingStagesSwapsPositionsWithoutUniqueViolation() throws Exception {
+        List<UUID> original = new ArrayList<>(stageIds);
+        List<UUID> swapped = new ArrayList<>(original);
+        UUID tmp = swapped.get(2);
+        swapped.set(2, swapped.get(3));
+        swapped.set(3, tmp);
+
+        reorderStages(swapped);
+        JsonNode after = getJson("/api/v1/pipeline-stages", adminToken);
+        assertThat(after.get(2).get("id").asText()).isEqualTo(swapped.get(2).toString());
+        assertThat(after.get(3).get("id").asText()).isEqualTo(swapped.get(3).toString());
+
+        reorderStages(original); // leave the shared test DB as we found it
+        assertThat(getJson("/api/v1/pipeline-stages", adminToken).get(2).get("id").asText()).isEqualTo(original.get(2).toString());
+    }
+
+    private void reorderStages(List<UUID> ids) throws Exception {
+        String body = "{\"ids\":[" + ids.stream().map(id -> "\"" + id + "\"").collect(java.util.stream.Collectors.joining(",")) + "]}";
+        mockMvc.perform(put("/api/v1/pipeline-stages/order")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().is2xxSuccessful());
+    }
+
     private String createStudentAsCurator(UUID stageId, String startedAt) throws Exception {
         return mockMvc.perform(post("/api/v1/students")
                         .header("Authorization", "Bearer " + curatorToken)
