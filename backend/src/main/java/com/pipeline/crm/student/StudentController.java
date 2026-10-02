@@ -44,6 +44,12 @@ public class StudentController {
         return studentService.update(id, request, actor());
     }
 
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable UUID id) {
+        studentService.delete(id, actor());
+    }
+
     @PostMapping("/{id}/move-stage")
     public StudentDto moveStage(@PathVariable UUID id, @Valid @RequestBody MoveStageRequest request) {
         return studentService.moveStage(id, request, actor());

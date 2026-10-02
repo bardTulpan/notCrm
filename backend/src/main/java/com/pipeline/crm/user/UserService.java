@@ -47,6 +47,7 @@ public class UserService {
         user.setSeeLeads(request.seeLeads() == null || request.seeLeads());
         user.setSeeStats(request.seeStats() == null || request.seeStats());
         user.setCanReassign(request.canReassign() != null && request.canReassign());
+        user.setCanDeleteStudents(request.canDeleteStudents() != null && request.canDeleteStudents());
         userRepository.save(user);
 
         auditService.log(actor.id(), "user", user.getId(), "create", null, safe(user));
@@ -70,6 +71,9 @@ public class UserService {
         }
         if (request.canReassign() != null) {
             user.setCanReassign(request.canReassign());
+        }
+        if (request.canDeleteStudents() != null) {
+            user.setCanDeleteStudents(request.canDeleteStudents());
         }
         userRepository.save(user);
         auditService.log(actor.id(), "user", id, "update", null, safe(user));

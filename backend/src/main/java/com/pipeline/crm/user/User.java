@@ -51,6 +51,9 @@ public class User {
     @Column(name = "can_reassign", nullable = false)
     private boolean canReassign = false;
 
+    @Column(name = "can_delete_students", nullable = false)
+    private boolean canDeleteStudents = false;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

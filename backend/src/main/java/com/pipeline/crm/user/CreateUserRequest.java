@@ -12,6 +12,7 @@ public record CreateUserRequest(
         @NotNull Role role,
         Boolean seeLeads,
         Boolean seeStats,
-        Boolean canReassign
+        Boolean canReassign,
+        Boolean canDeleteStudents
 ) {
 }

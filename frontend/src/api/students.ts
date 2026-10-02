@@ -26,6 +26,8 @@ export const studentsApi = {
   update: (id: string, payload: UpdateStudentRequest) =>
     client.patch<StudentDto>(`/students/${id}`, payload).then((r) => r.data),
 
+  remove: (id: string) => client.delete(`/students/${id}`),
+
   moveStage: (id: string, stageId: string) =>
     client.post<StudentDto>(`/students/${id}/move-stage`, { stageId }).then((r) => r.data),
 

@@ -23,7 +23,8 @@ public final class UserDtos {
                 user.getCreatedAt(),
                 user.isSeeLeads(),
                 user.isSeeStats(),
-                user.isCanReassign()
+                user.isCanReassign(),
+                user.isCanDeleteStudents()
         );
     }
 

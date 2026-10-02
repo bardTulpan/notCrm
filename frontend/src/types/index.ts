@@ -14,6 +14,7 @@ export interface AuthUserDto {
   seeLeads: boolean
   seeStats: boolean
   canReassign: boolean
+  canDeleteStudents: boolean
 }
 
 export interface AuthResponse {
@@ -33,6 +34,7 @@ export interface UserDto {
   seeLeads: boolean
   seeStats: boolean
   canReassign: boolean
+  canDeleteStudents: boolean
 }
 
 export interface CreateUserRequest {
@@ -44,6 +46,7 @@ export interface CreateUserRequest {
   seeLeads?: boolean
   seeStats?: boolean
   canReassign?: boolean
+  canDeleteStudents?: boolean
 }
 
 export interface UpdateUserRequest {
@@ -52,6 +55,7 @@ export interface UpdateUserRequest {
   seeLeads?: boolean
   seeStats?: boolean
   canReassign?: boolean
+  canDeleteStudents?: boolean
 }
 
 export interface StageDto {

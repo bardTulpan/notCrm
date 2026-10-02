@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Modal } from '../../components/Modal'
+import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { NotesList } from '../../components/NotesList'
 import { TelegramLink } from '../../components/TelegramLink'
 import { Avatar } from '../../components/Avatar'
@@ -46,12 +47,14 @@ export function StudentDetailsModal({
   const { push } = useToast()
   const isAdmin = user?.role === 'ADMIN'
   const canReassignCurator = isAdmin || !!user?.canReassign
+  const canDelete = isAdmin || !!user?.canDeleteStudents
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const [busy, setBusy] = useState(false)
   const [startedAt, setStartedAt] = useState(toDateInputValue(student.startedAt))
 
   const [editing, setEditing] = useState(false)
   const [draftName, setDraftName] = useState(student.fullName)
-  const [draftPostpay, setDraftPostpay] = useState(student.postpayPercent?.toString() ?? '')
+  const [postpay, setPostpay] = useState(student.postpayPercent?.toString() ?? '')
   const [draftTelegram, setDraftTelegram] = useState(student.telegramUsername ?? '')
   const draftNotes = useAutoListTextarea(student.notes.map((n) => n.text).join('\n'))
 
@@ -66,6 +69,19 @@ export function StudentDetailsModal({
     } catch (err) {
       push('error', apiErrorMessage(err))
     } finally {
+      setBusy(false)
+    }
+  }
+
+  async function deleteStudent() {
+    setBusy(true)
+    try {
+      await studentsApi.remove(student.id)
+      push('success', `${student.fullName} удалён`)
+      onChanged()
+      onClose()
+    } catch (err) {
+      push('error', apiErrorMessage(err))
       setBusy(false)
     }
   }
@@ -113,9 +129,30 @@ export function StudentDetailsModal({
     }
   }
 
+  async function savePostpay() {
+    const value = Number(postpay)
+    const valid = postpay.trim() !== '' && Number.isInteger(value) && value >= 0 && value <= 100
+    if (!valid) {
+      if (postpay.trim() !== '') push('error', 'Постоплата: целое число от 0 до 100')
+      setPostpay(student.postpayPercent?.toString() ?? '')
+      return
+    }
+    if (value === student.postpayPercent) return
+    setBusy(true)
+    try {
+      await studentsApi.update(student.id, { postpayPercent: value })
+      push('success', 'Постоплата обновлена')
+      onChanged()
+    } catch (err) {
+      push('error', apiErrorMessage(err))
+      setPostpay(student.postpayPercent?.toString() ?? '')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   function startEditing() {
     setDraftName(student.fullName)
-    setDraftPostpay(student.postpayPercent?.toString() ?? '')
     setDraftTelegram(student.telegramUsername ?? '')
     draftNotes.setValue(student.notes.map((n) => n.text).join('\n'))
     setEditing(true)
@@ -128,7 +165,6 @@ export function StudentDetailsModal({
       await studentsApi.update(student.id, {
         fullName: draftName.trim(),
         telegramUsername: draftTelegram.trim(),
-        postpayPercent: draftPostpay ? Number(draftPostpay) : undefined,
         notes: draftNotes.value
           .split('\n')
           .map((line) => line.trim())
@@ -161,17 +197,6 @@ export function StudentDetailsModal({
       subtitle={
         editing ? (
           <>
-            <label className="text-xs font-semibold text-ink-600 flex items-center gap-2">
-              постоплата, %
-              <input
-                className="input w-20"
-                type="number"
-                min={0}
-                max={100}
-                value={draftPostpay}
-                onChange={(e) => setDraftPostpay(e.target.value)}
-              />
-            </label>
             <label className="text-xs font-semibold text-ink-600 flex items-center gap-2">
               Telegram
               <input
@@ -214,44 +239,6 @@ export function StudentDetailsModal({
         </select>
       </div>
 
-      <div className="flex gap-3 mb-3">
-        <label className="text-xs font-semibold text-ink-600 flex-1">
-          Когорта
-          <select
-            className="input w-full mt-1"
-            value={student.cohortId ?? ''}
-            disabled={!isAdmin || busy}
-            onChange={(e) => reassignCohort(e.target.value)}
-          >
-            {!student.cohortId && <option value="">— без когорты —</option>}
-            {cohorts.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="text-xs font-semibold text-ink-600 flex-1">
-          Дата начала
-          <input
-            className="input w-full mt-1"
-            type="date"
-            value={startedAt}
-            disabled={busy}
-            onChange={(e) => setStartedAt(e.target.value)}
-            onBlur={saveStartedAt}
-          />
-        </label>
-      </div>
-
-      <button
-        className={`btn-ghost w-full ${student.isPaused ? '!bg-pause-soft !text-pause !border-pause' : ''}`}
-        disabled={busy}
-        onClick={togglePause}
-      >
-        {student.isPaused ? '▶ Снять с паузы' : '⏸ Поставить на паузу'}
-      </button>
-
       <div className="flex items-center justify-between mt-4 mb-2">
         <div className="text-xs font-semibold text-ink-600 uppercase tracking-wide">Описание</div>
         {!editing && (
@@ -285,11 +272,84 @@ export function StudentDetailsModal({
         <NotesList notes={student.notes} onAdd={startEditing} />
       )}
 
+      <div className="flex gap-3 mb-3">
+        <label className="text-xs font-semibold text-ink-600 flex-1">
+          Когорта
+          <select
+            className="input w-full mt-1"
+            value={student.cohortId ?? ''}
+            disabled={!isAdmin || busy}
+            onChange={(e) => reassignCohort(e.target.value)}
+          >
+            {!student.cohortId && <option value="">— без когорты —</option>}
+            {cohorts.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="text-xs font-semibold text-ink-600 flex-1">
+          Дата начала
+          <input
+            className="input w-full mt-1"
+            type="date"
+            value={startedAt}
+            disabled={busy}
+            onChange={(e) => setStartedAt(e.target.value)}
+            onBlur={saveStartedAt}
+          />
+        </label>
+      </div>
+
+      <label className="text-xs font-semibold text-ink-600 block w-1/2 pr-1.5 mb-3">
+        Постоплата, %
+        <input
+          className="input w-full mt-1"
+          type="number"
+          min={0}
+          max={100}
+          value={postpay}
+          disabled={busy}
+          onChange={(e) => setPostpay(e.target.value)}
+          onBlur={savePostpay}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') e.currentTarget.blur()
+          }}
+        />
+      </label>
+
+      <button
+        className={`btn-ghost w-full ${student.isPaused ? '!bg-pause-soft !text-pause !border-pause' : ''}`}
+        disabled={busy}
+        onClick={togglePause}
+      >
+        {student.isPaused ? '▶ Снять с паузы' : '⏸ Поставить на паузу'}
+      </button>
+
       <div className="text-xs font-semibold text-ink-600 uppercase tracking-wide mt-4 mb-2">Комментарии</div>
       <StudentComments studentId={student.id} authorName={(id) => displayName(id).name} />
 
       <div className="text-xs font-semibold text-ink-600 uppercase tracking-wide mt-4 mb-2">История</div>
       <StudentHistory student={student} stages={stages} curatorName={(id) => displayName(id).name} />
+
+      {canDelete && (
+        <div className="mt-6 pt-4 border-t border-border flex justify-end">
+          <button className="btn-danger" disabled={busy} onClick={() => setConfirmDelete(true)}>
+            Удалить ученика
+          </button>
+        </div>
+      )}
+      {confirmDelete && (
+        <ConfirmDialog
+          title="Удалить ученика?"
+          message={`«${student.fullName}» исчезнет с доски и из статистики. Действие попадёт в журнал.`}
+          confirmLabel="Удалить"
+          danger
+          onConfirm={deleteStudent}
+          onClose={() => setConfirmDelete(false)}
+        />
+      )}
     </Modal>
   )
 }

@@ -33,7 +33,7 @@ export function UserManagement({ users, onChanged }: { users: UserDto[]; onChang
     }
   }
 
-  async function togglePermission(user: UserDto, key: 'seeLeads' | 'seeStats' | 'canReassign') {
+  async function togglePermission(user: UserDto, key: 'seeLeads' | 'seeStats' | 'canReassign' | 'canDeleteStudents') {
     try {
       await usersApi.update(user.id, { [key]: !user[key] })
       onChanged()
@@ -74,6 +74,7 @@ export function UserManagement({ users, onChanged }: { users: UserDto[]; onChang
                   ['seeLeads', 'Видит вкладку «Лиды»'],
                   ['seeStats', 'Видит вкладку «Статистика»'],
                   ['canReassign', 'Может переназначать куратора'],
+                  ['canDeleteStudents', 'Может удалять учеников'],
                 ] as const
               ).map(([key, label]) => (
                 <label key={key} className="flex items-center gap-1.5 text-xs text-ink-600 cursor-pointer select-none">
