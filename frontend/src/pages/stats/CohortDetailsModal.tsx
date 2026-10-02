@@ -4,10 +4,7 @@ import { Avatar } from '../../components/Avatar'
 import { HealthBadge } from '../../components/HealthBadge'
 import { statisticsApi } from '../../api/statistics'
 import { studentsApi } from '../../api/students'
-import { useAuth } from '../../auth/useAuth'
 import { useCurators } from '../../hooks/useCurators'
-import { useCohorts } from '../../hooks/useCohorts'
-import { useToast, apiErrorMessage } from '../../hooks/useToast'
 import { daysSince } from '../../utils/dates'
 import { pluralPeople } from '../../utils/plural'
 import { StudentDetailsModal } from '../students/StudentDetailsModal'
@@ -22,10 +19,7 @@ export function CohortDetailsModal({
   stages: StageDto[]
   onClose: () => void
 }) {
-  const { user } = useAuth()
   const { displayName } = useCurators()
-  const { cohorts } = useCohorts()
-  const { push } = useToast()
   const [detail, setDetail] = useState<CohortStats | null>(null)
   const [students, setStudents] = useState<StudentDto[]>([])
   const [openStudentId, setOpenStudentId] = useState<string | null>(null)
@@ -55,15 +49,6 @@ export function CohortDetailsModal({
     : '—'
   const onTrackPct = detail.total ? Math.round((detail.onTrackCount / detail.total) * 100) : 0
   const behindPct = detail.total ? 100 - onTrackPct : 0
-
-  async function reassignCohort(studentId: string, newCohortId: string) {
-    try {
-      await studentsApi.update(studentId, { cohortId: newCohortId })
-      refetch()
-    } catch (err) {
-      push('error', apiErrorMessage(err))
-    }
-  }
 
   return (
     <Modal title={`Когорта: ${detail.name ?? '—'}`} subtitle={`${detail.total} ${pluralPeople(detail.total)} · ${elapsed} дн. в пути`} onClose={onClose}>
@@ -102,20 +87,6 @@ export function CohortDetailsModal({
               <span>{s.fullName}</span>
               <span className="font-normal text-ink-600 text-xs">· {stageName}</span>
             </div>
-            {user?.role === 'ADMIN' && (
-              <select
-                className="input text-[11px]"
-                value={s.cohortId ?? ''}
-                onClick={(e) => e.stopPropagation()}
-                onChange={(e) => reassignCohort(s.id, e.target.value)}
-              >
-                {cohorts.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            )}
           </div>
         )
       })}

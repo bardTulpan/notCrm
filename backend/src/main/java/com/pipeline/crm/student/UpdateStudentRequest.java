@@ -13,7 +13,6 @@ public record UpdateStudentRequest(
         @Size(max = 200) String fullName,
         @Size(max = 100) String telegramUsername,
         UUID curatorId,
-        UUID cohortId,
         Instant stageEnteredAt,
         Instant startedAt,
         @Min(0) @Max(100) Integer postpayPercent,

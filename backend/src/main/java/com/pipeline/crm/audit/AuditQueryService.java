@@ -93,6 +93,9 @@ public class AuditQueryService {
                 }
                 case "reorder" -> "изменил порядок карточки " + q + " в этапе «" + names.stage(text(after, "stageId")) + "»";
                 case "delete" -> "удалил ученика " + q;
+                case "change-cohort" -> "сменил когорту ученика " + q + " (по дате начала): "
+                        + (text(after, "fromCohortId") != null ? names.cohort(text(after, "fromCohortId")) + " → " : "")
+                        + names.cohort(text(after, "toCohortId"));
                 case "pause" -> "поставил ученика " + q + " на паузу";
                 case "resume" -> "снял с паузы ученика " + q;
                 case "assign-curator" -> {
@@ -202,6 +205,7 @@ public class AuditQueryService {
                 addUuid(stageIds, legacyId(after));
                 for (String f : new String[]{"fromCuratorId", "toCuratorId"}) addUuid(userIds, text(after, f));
                 if ("assign-curator".equals(r.getAction())) addUuid(userIds, legacyId(after));
+                for (String f : new String[]{"fromCohortId", "toCohortId"}) addUuid(cohortIds, text(after, f));
             }
             users = load(userIds, userRepository.findAllById(userIds), User::getId, User::getFullName);
             students = load(studentIds, studentRepository.findAllById(studentIds), Student::getId, Student::getFullName);
@@ -222,6 +226,11 @@ public class AuditQueryService {
 
         String user(UUID id) {
             return id == null ? "—" : users.getOrDefault(id, "—");
+        }
+
+        String cohort(String id) {
+            UUID parsed = uuid(id);
+            return parsed == null ? "—" : cohorts.getOrDefault(parsed, "—");
         }
 
         String stage(String id) {
