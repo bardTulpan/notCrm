@@ -143,6 +143,7 @@ export interface StudentNoteDto {
 export interface StudentDto {
   id: string
   fullName: string
+  telegramUsername: string | null
   sourceLeadId: string | null
   currentStageId: string
   curatorId: string
@@ -161,6 +162,7 @@ export interface StudentDto {
 
 export interface CreateStudentRequest {
   fullName: string
+  telegramUsername?: string
   curatorId?: string
   cohortId?: string
   currentStageId: string
@@ -171,6 +173,7 @@ export interface CreateStudentRequest {
 
 export interface UpdateStudentRequest {
   fullName?: string
+  telegramUsername?: string
   curatorId?: string
   cohortId?: string
   stageEnteredAt?: string

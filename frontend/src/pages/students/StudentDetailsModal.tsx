@@ -50,6 +50,7 @@ export function StudentDetailsModal({
   const [editing, setEditing] = useState(false)
   const [draftName, setDraftName] = useState(student.fullName)
   const [draftPostpay, setDraftPostpay] = useState(student.postpayPercent?.toString() ?? '')
+  const [draftTelegram, setDraftTelegram] = useState(student.telegramUsername ?? '')
   const draftNotes = useAutoListTextarea(student.notes.map((n) => n.text).join('\n'))
 
   const cur = displayName(student.curatorId)
@@ -113,6 +114,7 @@ export function StudentDetailsModal({
   function startEditing() {
     setDraftName(student.fullName)
     setDraftPostpay(student.postpayPercent?.toString() ?? '')
+    setDraftTelegram(student.telegramUsername ?? '')
     draftNotes.setValue(student.notes.map((n) => n.text).join('\n'))
     setEditing(true)
   }
@@ -123,6 +125,7 @@ export function StudentDetailsModal({
     try {
       await studentsApi.update(student.id, {
         fullName: draftName.trim(),
+        telegramUsername: draftTelegram.trim(),
         postpayPercent: draftPostpay ? Number(draftPostpay) : undefined,
         notes: draftNotes.value
           .split('\n')
@@ -155,19 +158,33 @@ export function StudentDetailsModal({
       }
       subtitle={
         editing ? (
-          <label className="text-xs font-semibold text-ink-600 flex items-center gap-2">
-            постоплата, %
-            <input
-              className="input w-20"
-              type="number"
-              min={0}
-              max={100}
-              value={draftPostpay}
-              onChange={(e) => setDraftPostpay(e.target.value)}
-            />
-          </label>
+          <>
+            <label className="text-xs font-semibold text-ink-600 flex items-center gap-2">
+              постоплата, %
+              <input
+                className="input w-20"
+                type="number"
+                min={0}
+                max={100}
+                value={draftPostpay}
+                onChange={(e) => setDraftPostpay(e.target.value)}
+              />
+            </label>
+            <label className="text-xs font-semibold text-ink-600 flex items-center gap-2">
+              Telegram
+              <input
+                className="input w-40"
+                value={draftTelegram}
+                onChange={(e) => setDraftTelegram(e.target.value)}
+                placeholder="@username"
+              />
+            </label>
+          </>
         ) : (
           <>
+            {student.telegramUsername && (
+              <span className="font-mono text-xs text-accent font-semibold">{student.telegramUsername}</span>
+            )}
             <span className="font-mono text-xs bg-success-soft text-success px-2 py-0.5 rounded-md font-semibold">
               постоплата · {student.postpayPercent ?? '—'}%
             </span>

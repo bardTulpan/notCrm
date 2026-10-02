@@ -14,6 +14,7 @@ public final class StudentDtos {
         return new StudentDto(
                 student.getId(),
                 student.getFullName(),
+                student.getTelegramUsername(),
                 student.getSourceLeadId(),
                 student.getCurrentStageId(),
                 student.getCuratorId(),

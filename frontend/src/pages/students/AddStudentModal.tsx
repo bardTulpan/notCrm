@@ -35,7 +35,7 @@ export function AddStudentModal({
   const [stageId, setStageId] = useState(activeStages[0]?.id ?? '')
   const [curatorId, setCuratorId] = useState('')
   const [startedAt, setStartedAt] = useState(today)
-  const [stageEnteredAt, setStageEnteredAt] = useState(today)
+  const [telegramUsername, setTelegramUsername] = useState('')
   const [postpayPercent, setPostpayPercent] = useState('70')
   const [submitting, setSubmitting] = useState(false)
 
@@ -51,11 +51,11 @@ export function AddStudentModal({
     try {
       await studentsApi.create({
         fullName: fullName.trim(),
+        telegramUsername: telegramUsername.trim() || undefined,
         currentStageId: stageId,
         curatorId: isAdmin ? curatorId : undefined,
         cohortId: cohortId || undefined,
         startedAt: startedAt ? new Date(startedAt).toISOString() : undefined,
-        stageEnteredAt: stageEnteredAt ? new Date(stageEnteredAt).toISOString() : undefined,
         postpayPercent: postpayPercent ? Number(postpayPercent) : undefined,
       })
       push('success', `${fullName.trim()} добавлен`)
@@ -74,6 +74,15 @@ export function AddStudentModal({
         <label className="text-xs font-semibold text-ink-600">
           Имя
           <input className="input w-full mt-1" value={fullName} onChange={(e) => setFullName(e.target.value)} autoFocus />
+        </label>
+        <label className="text-xs font-semibold text-ink-600">
+          Telegram username
+          <input
+            className="input w-full mt-1"
+            value={telegramUsername}
+            onChange={(e) => setTelegramUsername(e.target.value)}
+            placeholder="@username"
+          />
         </label>
         <label className="text-xs font-semibold text-ink-600">
           Этап
@@ -104,21 +113,17 @@ export function AddStudentModal({
             <input className="input w-full mt-1" type="date" value={startedAt} onChange={(e) => setStartedAt(e.target.value)} />
           </label>
           <label className="text-xs font-semibold text-ink-600 flex-1">
-            На этапе с
-            <input className="input w-full mt-1" type="date" value={stageEnteredAt} onChange={(e) => setStageEnteredAt(e.target.value)} />
+            Постоплата, %
+            <input
+              className="input w-full mt-1"
+              type="number"
+              min={0}
+              max={100}
+              value={postpayPercent}
+              onChange={(e) => setPostpayPercent(e.target.value)}
+            />
           </label>
         </div>
-        <label className="text-xs font-semibold text-ink-600">
-          Постоплата, %
-          <input
-            className="input w-full mt-1"
-            type="number"
-            min={0}
-            max={100}
-            value={postpayPercent}
-            onChange={(e) => setPostpayPercent(e.target.value)}
-          />
-        </label>
         {startedAt && (
           <div className="text-xs text-ink-600">
             Когорта: {cohortId ? cohorts.find((c) => c.id === cohortId)?.name : `«${cohortNameForDate(startedAt)}» (будет создана)`}

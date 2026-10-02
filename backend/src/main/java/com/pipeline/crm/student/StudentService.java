@@ -79,6 +79,7 @@ public class StudentService {
         Instant now = Instant.now();
         Student student = new Student();
         student.setFullName(request.fullName());
+        student.setTelegramUsername(blankToNull(request.telegramUsername()));
         student.setCurrentStageId(request.currentStageId());
         student.setCuratorId(curatorId);
         Instant startedAt = request.startedAt() != null ? request.startedAt() : now;
@@ -107,6 +108,7 @@ public class StudentService {
     public StudentDto update(UUID id, UpdateStudentRequest request, CurrentUser user) {
         Student student = requireFor(id, user);
         if (request.fullName() != null) student.setFullName(request.fullName());
+        if (request.telegramUsername() != null) student.setTelegramUsername(blankToNull(request.telegramUsername()));
         if (request.postpayPercent() != null) student.setPostpayPercent(request.postpayPercent());
         if (request.startedAt() != null) student.setStartedAt(request.startedAt());
         if (request.stageEnteredAt() != null) student.setStageEnteredAt(request.stageEnteredAt());
@@ -350,6 +352,10 @@ public class StudentService {
                 Map.of("fromCuratorId", String.valueOf(history.getFromCuratorId()), "toCuratorId", newCuratorId.toString()));
     }
 
+    private static String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
+    }
+
     private Student requireFor(UUID id, CurrentUser user) {
         Student student = studentRepository.findById(id)
                 .filter(s -> s.getDeletedAt() == null)
@@ -375,7 +381,7 @@ public class StudentService {
         Integer norm = stage != null ? stage.getNormDays() : null;
         String health = HealthCalculator.health(student, norm);
         return new StudentDto(
-                student.getId(), student.getFullName(), student.getSourceLeadId(),
+                student.getId(), student.getFullName(), student.getTelegramUsername(), student.getSourceLeadId(),
                 student.getCurrentStageId(), student.getCuratorId(), student.getCohortId(),
                 student.getStageEnteredAt(), student.getStartedAt(), student.isPaused(),
                 student.getPausedAt(), student.getPostpayPercent(), student.getCreatedById(),

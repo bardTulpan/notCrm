@@ -48,6 +48,9 @@ public class Student {
     @Column(name = "paused_at")
     private Instant pausedAt;
 
+    @Column(name = "telegram_username", length = 100)
+    private String telegramUsername;
+
     @Column(name = "postpay_percent")
     private Integer postpayPercent;
 

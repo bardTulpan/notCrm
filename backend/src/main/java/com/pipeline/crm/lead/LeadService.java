@@ -134,6 +134,7 @@ public class LeadService {
         Student student = new Student();
         student.setFullName(lead.getName());
         student.setSourceLeadId(lead.getId());
+        student.setTelegramUsername(lead.getTelegramUsername());
         student.setCurrentStageId(firstStage.getId());
         student.setCuratorId(curatorId);
         Instant startedAt = request.startedAt() != null ? request.startedAt() : Instant.now();
