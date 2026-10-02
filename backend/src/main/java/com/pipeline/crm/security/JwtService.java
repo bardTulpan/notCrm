@@ -24,7 +24,7 @@ public class JwtService {
         this.key = Keys.hmacShaKeyFor(properties.secret().getBytes(StandardCharsets.UTF_8));
     }
 
-    public String generateAccessToken(UUID userId, String username, Role role, boolean seeLeads, boolean seeStats, boolean canReassign) {
+    public String generateAccessToken(UUID userId, String username, Role role, boolean seeLeads, boolean seeStats, boolean canReassign, boolean canDeleteStudents) {
         Instant now = Instant.now();
         return Jwts.builder()
                 .subject(userId.toString())
@@ -33,6 +33,7 @@ public class JwtService {
                 .claim("seeLeads", seeLeads)
                 .claim("seeStats", seeStats)
                 .claim("canReassign", canReassign)
+                .claim("canDeleteStudents", canDeleteStudents)
                 .claim("type", "access")
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(now.plusSeconds(properties.accessTtlMinutes() * 60)))
@@ -67,9 +68,10 @@ public class JwtService {
                 claims.get("role", String.class),
                 Boolean.TRUE.equals(claims.get("seeLeads", Boolean.class)),
                 Boolean.TRUE.equals(claims.get("seeStats", Boolean.class)),
-                Boolean.TRUE.equals(claims.get("canReassign", Boolean.class)));
+                Boolean.TRUE.equals(claims.get("canReassign", Boolean.class)),
+                Boolean.TRUE.equals(claims.get("canDeleteStudents", Boolean.class)));
     }
 
-    public record TokenPayload(UUID userId, String username, String role, boolean seeLeads, boolean seeStats, boolean canReassign) {
+    public record TokenPayload(UUID userId, String username, String role, boolean seeLeads, boolean seeStats, boolean canReassign, boolean canDeleteStudents) {
     }
 }

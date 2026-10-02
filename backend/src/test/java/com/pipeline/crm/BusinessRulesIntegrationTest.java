@@ -460,6 +460,56 @@ class BusinessRulesIntegrationTest extends AbstractIntegrationTest {
         assertThat(directory.get(0).has("fullName")).isTrue();
     }
 
+    @Test
+    void deletingStudentsIsAdminOnlyUnlessCuratorIsGrantedThePermission() throws Exception {
+        UUID mine = createStudent(stageIds.get(0), daysAgo(1), daysAgo(1)); // belongs to curatorId (anya)
+        UUID othersCuratorStudent = createStudentFor(otherCuratorId);
+
+        // default: curators can't delete
+        mockMvc.perform(delete("/api/v1/students/" + mine).header("Authorization", "Bearer " + curatorToken))
+                .andExpect(status().isForbidden());
+
+        // admin can: the student disappears from reads and lists
+        UUID byAdmin = createStudent(stageIds.get(0), daysAgo(1), daysAgo(1));
+        mockMvc.perform(delete("/api/v1/students/" + byAdmin).header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isNoContent());
+        mockMvc.perform(get("/api/v1/students/" + byAdmin).header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isNotFound());
+        for (JsonNode st : getJson("/api/v1/students", adminToken)) {
+            assertThat(st.get("id").asText()).isNotEqualTo(byAdmin.toString());
+        }
+
+        // grant the permission to the curator; they can delete their own but still not someone else's
+        setCanDeleteStudents(curatorId, true);
+        try {
+            String fresh = login("anya.t", "curator1");
+            mockMvc.perform(delete("/api/v1/students/" + othersCuratorStudent).header("Authorization", "Bearer " + fresh))
+                    .andExpect(status().isNotFound());
+            mockMvc.perform(delete("/api/v1/students/" + mine).header("Authorization", "Bearer " + fresh))
+                    .andExpect(status().isNoContent());
+        } finally {
+            setCanDeleteStudents(curatorId, false);
+        }
+    }
+
+    private UUID createStudentFor(UUID curator) throws Exception {
+        String body = "{\"fullName\":\"Other " + UUID.randomUUID() + "\",\"curatorId\":\"" + curator
+                + "\",\"currentStageId\":\"" + stageIds.get(0) + "\"}";
+        MvcResult result = mockMvc.perform(post("/api/v1/students")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isCreated()).andReturn();
+        return UUID.fromString(objectMapper.readTree(result.getResponse().getContentAsString()).get("id").asText());
+    }
+
+    private void setCanDeleteStudents(UUID userId, boolean value) throws Exception {
+        mockMvc.perform(patch("/api/v1/users/" + userId)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"canDeleteStudents\":" + value + "}"))
+                .andExpect(status().isOk());
+    }
+
     private void reorderStages(List<UUID> ids) throws Exception {
         String body = "{\"ids\":[" + ids.stream().map(id -> "\"" + id + "\"").collect(java.util.stream.Collectors.joining(",")) + "]}";
         mockMvc.perform(put("/api/v1/pipeline-stages/order")

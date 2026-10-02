@@ -7,6 +7,7 @@ public record UpdateUserRequest(
         String avatarColor,
         Boolean seeLeads,
         Boolean seeStats,
-        Boolean canReassign
+        Boolean canReassign,
+        Boolean canDeleteStudents
 ) {
 }

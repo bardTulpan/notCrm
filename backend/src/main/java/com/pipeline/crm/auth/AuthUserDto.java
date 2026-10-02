@@ -12,6 +12,7 @@ public record AuthUserDto(
         String avatarColor,
         boolean seeLeads,
         boolean seeStats,
-        boolean canReassign
+        boolean canReassign,
+        boolean canDeleteStudents
 ) {
 }

@@ -30,7 +30,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             try {
                 JwtService.TokenPayload payload = jwtService.parse(token, "access");
                 CurrentUser user = new CurrentUser(payload.userId(), payload.username(), Role.valueOf(payload.role()),
-                        payload.seeLeads(), payload.seeStats(), payload.canReassign());
+                        payload.seeLeads(), payload.seeStats(), payload.canReassign(), payload.canDeleteStudents());
                 CurrentUserAuthentication auth = new CurrentUserAuthentication(user);
                 SecurityContextHolder.getContext().setAuthentication(auth);
             } catch (Exception ignored) {

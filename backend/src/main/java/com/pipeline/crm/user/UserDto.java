@@ -14,6 +14,7 @@ public record UserDto(
         Instant createdAt,
         boolean seeLeads,
         boolean seeStats,
-        boolean canReassign
+        boolean canReassign,
+        boolean canDeleteStudents
 ) {
 }

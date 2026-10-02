@@ -50,7 +50,7 @@ public class AuthService {
         userRepository.save(user);
 
         String access = jwtService.generateAccessToken(user.getId(), user.getUsername(), user.getRole(),
-                user.isSeeLeads(), user.isSeeStats(), user.isCanReassign());
+                user.isSeeLeads(), user.isSeeStats(), user.isCanReassign(), user.isCanDeleteStudents());
         String refresh = jwtService.generateRefreshToken(user.getId());
         setRefreshCookie(response, refresh);
 
@@ -78,7 +78,7 @@ public class AuthService {
         }
 
         String access = jwtService.generateAccessToken(user.getId(), user.getUsername(), user.getRole(),
-                user.isSeeLeads(), user.isSeeStats(), user.isCanReassign());
+                user.isSeeLeads(), user.isSeeStats(), user.isCanReassign(), user.isCanDeleteStudents());
         String newRefresh = jwtService.generateRefreshToken(user.getId());
         setRefreshCookie(response, newRefresh);
 
@@ -138,7 +138,7 @@ public class AuthService {
 
     private AuthUserDto toDto(User user) {
         return new AuthUserDto(user.getId(), user.getUsername(), user.getFullName(), user.getRole(), user.getAvatarColor(),
-                user.isSeeLeads(), user.isSeeStats(), user.isCanReassign());
+                user.isSeeLeads(), user.isSeeStats(), user.isCanReassign(), user.isCanDeleteStudents());
     }
 
     public record AuthResponse(String accessToken, AuthUserDto user) {

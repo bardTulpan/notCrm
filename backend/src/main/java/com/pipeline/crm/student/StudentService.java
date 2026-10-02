@@ -152,6 +152,21 @@ public class StudentService {
         return toFullDto(student);
     }
 
+    /**
+     * Soft delete (the row stays, hidden everywhere via deletedAt). Allowed for ADMIN and for curators the admin
+     * has granted "can delete students"; a curator can still only reach their own students (404 otherwise).
+     */
+    @Transactional
+    public void delete(UUID id, CurrentUser user) {
+        if (!user.isAdmin() && !user.canDeleteStudents()) {
+            throw new ForbiddenException("No permission to delete students");
+        }
+        Student student = requireFor(id, user);
+        student.setDeletedAt(Instant.now());
+        studentRepository.save(student);
+        auditService.log(user.id(), "student", id, "delete", null, Map.of("fullName", student.getFullName()));
+    }
+
     @Transactional
     public StudentDto moveStage(UUID id, MoveStageRequest request, CurrentUser user) {
         Student student = requireFor(id, user);

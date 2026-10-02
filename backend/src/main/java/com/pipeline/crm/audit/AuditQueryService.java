@@ -92,6 +92,7 @@ public class AuditQueryService {
                             ? base + " (вернул на прежний этап — счётчик дней сохранён)" : base;
                 }
                 case "reorder" -> "изменил порядок карточки " + q + " в этапе «" + names.stage(text(after, "stageId")) + "»";
+                case "delete" -> "удалил ученика " + q;
                 case "pause" -> "поставил ученика " + q + " на паузу";
                 case "resume" -> "снял с паузы ученика " + q;
                 case "assign-curator" -> {
