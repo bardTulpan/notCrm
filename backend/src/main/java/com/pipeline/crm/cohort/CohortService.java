@@ -82,8 +82,10 @@ public class CohortService {
         if (existing.isPresent()) {
             return existing.get().getId();
         }
-        // An archived cohort on the 1st would collide with the unique start_date: bring it back instead.
-        var archived = cohortRepository.findByStartDate(first);
+        // An archived cohort on the 1st (or carrying the same "Месяц Год" name) would collide with the unique
+        // start_date / name: bring it back instead of creating a duplicate.
+        String name = MONTHS_RU[first.getMonthValue() - 1] + " " + first.getYear();
+        var archived = cohortRepository.findByStartDate(first).or(() -> cohortRepository.findByName(name));
         if (archived.isPresent()) {
             Cohort cohort = archived.get();
             cohort.setArchivedAt(null);
@@ -93,7 +95,7 @@ public class CohortService {
         }
 
         Cohort cohort = new Cohort();
-        cohort.setName(MONTHS_RU[first.getMonthValue() - 1] + " " + first.getYear());
+        cohort.setName(name);
         cohort.setStartDate(first);
         cohortRepository.save(cohort);
         auditService.log(actor.id(), "cohort", cohort.getId(), "create", null, toMap(cohort));

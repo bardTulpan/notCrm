@@ -510,6 +510,40 @@ class BusinessRulesIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(status().isOk());
     }
 
+    @Test
+    void editingStartDateMovesStudentToCohortOfThatMonthInAnyYear() throws Exception {
+        UUID studentId = createStudent(stageIds.get(0), daysAgo(1), daysAgo(1));
+
+        for (String[] c : new String[][]{{"2025-12-10T00:00:00Z", "Декабрь 2025", "2025-12-01"},
+                                         {"2027-01-20T00:00:00Z", "Январь 2027", "2027-01-01"}}) {
+            JsonNode updated = patchStudent(studentId, "{\"startedAt\":\"" + c[0] + "\"}");
+            JsonNode cohort = findCohort(updated.get("cohortId").asText());
+            assertThat(cohort.get("name").asText()).isEqualTo(c[1]);
+            assertThat(cohort.get("startDate").asText()).isEqualTo(c[2]);
+        }
+
+        // another student in the same month lands in the same cohort; a manual cohortId in PATCH is ignored
+        UUID other = createStudent(stageIds.get(0), daysAgo(1), daysAgo(1));
+        String janCohort = getStudent(studentId, adminToken).get("cohortId").asText();
+        JsonNode sameMonth = patchStudent(other, "{\"startedAt\":\"2027-01-05T00:00:00Z\",\"cohortId\":\"" + UUID.randomUUID() + "\"}");
+        assertThat(sameMonth.get("cohortId").asText()).isEqualTo(janCohort);
+    }
+
+    private JsonNode patchStudent(UUID id, String body) throws Exception {
+        MvcResult result = mockMvc.perform(patch("/api/v1/students/" + id)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isOk()).andReturn();
+        return objectMapper.readTree(result.getResponse().getContentAsString(StandardCharsets.UTF_8));
+    }
+
+    private JsonNode findCohort(String id) throws Exception {
+        for (JsonNode c : getJson("/api/v1/cohorts", adminToken)) {
+            if (c.get("id").asText().equals(id)) return c;
+        }
+        throw new AssertionError("cohort not found: " + id);
+    }
+
     private void reorderStages(List<UUID> ids) throws Exception {
         String body = "{\"ids\":[" + ids.stream().map(id -> "\"" + id + "\"").collect(java.util.stream.Collectors.joining(",")) + "]}";
         mockMvc.perform(put("/api/v1/pipeline-stages/order")

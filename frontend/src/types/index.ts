@@ -179,7 +179,6 @@ export interface UpdateStudentRequest {
   fullName?: string
   telegramUsername?: string
   curatorId?: string
-  cohortId?: string
   stageEnteredAt?: string
   startedAt?: string
   postpayPercent?: number

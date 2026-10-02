@@ -119,7 +119,10 @@ public class StudentService {
         if (request.fullName() != null) student.setFullName(request.fullName());
         if (request.telegramUsername() != null) student.setTelegramUsername(blankToNull(request.telegramUsername()));
         if (request.postpayPercent() != null) student.setPostpayPercent(request.postpayPercent());
-        if (request.startedAt() != null) student.setStartedAt(request.startedAt());
+        if (request.startedAt() != null) {
+            student.setStartedAt(request.startedAt());
+            followStartDateCohort(student, user);
+        }
         if (request.stageEnteredAt() != null) {
             requireNotInFuture(request.stageEnteredAt());
             student.setStageEnteredAt(request.stageEnteredAt());
@@ -129,13 +132,6 @@ public class StudentService {
                 throw new ForbiddenException("Only admin can reassign curator");
             }
             reassignCurator(student, request.curatorId(), user);
-        }
-        if (request.cohortId() != null) {
-            if (!user.isAdmin()) {
-                throw new ForbiddenException("Only admin can change cohort");
-            }
-            cohortService.require(request.cohortId());
-            student.setCohortId(request.cohortId());
         }
         if (request.notes() != null) {
             student.getNotes().clear();
@@ -379,6 +375,23 @@ public class StudentService {
         student.setCuratorId(newCuratorId);
         auditService.log(user.id(), "student", student.getId(), "assign-curator", null,
                 Map.of("fromCuratorId", String.valueOf(history.getFromCuratorId()), "toCuratorId", newCuratorId.toString()));
+    }
+
+    /**
+     * The cohort is the cohort of the start month (any year — "Декабрь 2025", "Январь 2027"), created on demand.
+     * Re-derived whenever the start date is edited so the two can't drift apart.
+     */
+    private void followStartDateCohort(Student student, CurrentUser user) {
+        UUID target = cohortService.resolveForMonth(student.getStartedAt(), user);
+        if (target.equals(student.getCohortId())) {
+            return;
+        }
+        UUID previous = student.getCohortId();
+        student.setCohortId(target);
+        Map<String, Object> after = new java.util.LinkedHashMap<>();
+        if (previous != null) after.put("fromCohortId", previous.toString());
+        after.put("toCohortId", target.toString());
+        auditService.log(user.id(), "student", student.getId(), "change-cohort", null, after);
     }
 
     /** "On stage since" can't be later than now (a few minutes of client clock skew tolerated) — it would show negative days. */

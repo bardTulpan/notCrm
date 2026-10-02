@@ -17,4 +17,6 @@ public interface CohortRepository extends JpaRepository<Cohort, UUID> {
             java.time.LocalDate from, java.time.LocalDate to);
 
     java.util.Optional<Cohort> findByStartDate(java.time.LocalDate startDate);
+
+    java.util.Optional<Cohort> findByName(String name);
 }

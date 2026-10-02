@@ -43,7 +43,7 @@ export function StudentDetailsModal({
 }) {
   const { user } = useAuth()
   const { curators, displayName } = useCurators()
-  const { cohorts } = useCohorts()
+  const { cohorts, refetch: refetchCohorts } = useCohorts()
   const { push } = useToast()
   const isAdmin = user?.role === 'ADMIN'
   const canReassignCurator = isAdmin || !!user?.canReassign
@@ -99,27 +99,16 @@ export function StudentDetailsModal({
     }
   }
 
-  async function reassignCohort(newCohortId: string) {
-    setBusy(true)
-    try {
-      await studentsApi.update(student.id, { cohortId: newCohortId })
-      push('success', 'Когорта изменена')
-      onChanged()
-    } catch (err) {
-      push('error', apiErrorMessage(err))
-    } finally {
-      setBusy(false)
-    }
-  }
-
   async function saveStartedAt() {
     if (!startedAt) return
     const iso = new Date(startedAt).toISOString()
     if (iso === new Date(student.startedAt).toISOString()) return
     setBusy(true)
     try {
-      await studentsApi.update(student.id, { startedAt: iso })
-      push('success', 'Дата начала обновлена')
+      const updated = await studentsApi.update(student.id, { startedAt: iso })
+      // The backend re-derives the cohort from the new start month (any year) and may have just created it.
+      await refetchCohorts()
+      push('success', updated.cohortId !== student.cohortId ? 'Дата начала обновлена, когорта пересчитана' : 'Дата начала обновлена')
       onChanged()
     } catch (err) {
       push('error', apiErrorMessage(err))
@@ -272,23 +261,7 @@ export function StudentDetailsModal({
         <NotesList notes={student.notes} onAdd={startEditing} />
       )}
 
-      <div className="flex gap-3 mb-3">
-        <label className="text-xs font-semibold text-ink-600 flex-1">
-          Когорта
-          <select
-            className="input w-full mt-1"
-            value={student.cohortId ?? ''}
-            disabled={!isAdmin || busy}
-            onChange={(e) => reassignCohort(e.target.value)}
-          >
-            {!student.cohortId && <option value="">— без когорты —</option>}
-            {cohorts.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </label>
+      <div className="flex gap-3">
         <label className="text-xs font-semibold text-ink-600 flex-1">
           Дата начала
           <input
@@ -300,24 +273,27 @@ export function StudentDetailsModal({
             onBlur={saveStartedAt}
           />
         </label>
+        <label className="text-xs font-semibold text-ink-600 flex-1">
+          Постоплата, %
+          <input
+            className="input w-full mt-1"
+            type="number"
+            min={0}
+            max={100}
+            value={postpay}
+            disabled={busy}
+            onChange={(e) => setPostpay(e.target.value)}
+            onBlur={savePostpay}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') e.currentTarget.blur()
+            }}
+          />
+        </label>
       </div>
-
-      <label className="text-xs font-semibold text-ink-600 block w-1/2 pr-1.5 mb-3">
-        Постоплата, %
-        <input
-          className="input w-full mt-1"
-          type="number"
-          min={0}
-          max={100}
-          value={postpay}
-          disabled={busy}
-          onChange={(e) => setPostpay(e.target.value)}
-          onBlur={savePostpay}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') e.currentTarget.blur()
-          }}
-        />
-      </label>
+      <div className="text-xs text-ink-600 mt-1.5 mb-3">
+        Когорта: <span className="font-semibold text-ink-900">{cohorts.find((c) => c.id === student.cohortId)?.name ?? '—'}</span>
+        <span className="text-ink-400"> · определяется по дате начала</span>
+      </div>
 
       <button
         className={`btn-ghost w-full ${student.isPaused ? '!bg-pause-soft !text-pause !border-pause' : ''}`}
