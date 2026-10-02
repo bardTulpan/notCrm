@@ -39,7 +39,12 @@ public class StudentService {
             if (stageId != null) p = cb.and(p, cb.equal(root.get("currentStageId"), stageId));
             if (cohortId != null) p = cb.and(p, cb.equal(root.get("cohortId"), cohortId));
             if (search != null && !search.isBlank()) {
-                p = cb.and(p, cb.like(cb.lower(root.get("fullName")), "%" + search.toLowerCase() + "%"));
+                // Matches the name or the Telegram handle; a leading "@" in the query is ignored.
+                String term = search.trim().toLowerCase();
+                String handle = term.startsWith("@") ? term.substring(1) : term;
+                p = cb.and(p, cb.or(
+                        cb.like(cb.lower(root.get("fullName")), "%" + term + "%"),
+                        cb.like(cb.lower(cb.coalesce(root.<String>get("telegramUsername"), "")), "%" + handle + "%")));
             }
             return p;
         };

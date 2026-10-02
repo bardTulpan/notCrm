@@ -92,7 +92,7 @@ export function StudentsPage() {
           const targetStage = stages.find((s) => s.id === stageId)
           push('success', `${student.fullName} → ${targetStage?.name ?? 'другой этап'}`, {
             actionLabel: 'Отменить',
-            durationMs: 5000,
+            durationMs: 7000,
             onAction: () => {
               studentsApi.reorder(studentId, originalStageId, null).catch(() => undefined).finally(refetch)
             },

@@ -25,7 +25,7 @@ export function StudentFilters({
   return (
     <div>
       <div className="mb-4 flex items-center gap-3">
-        <input className="input w-60" placeholder="Поиск ученика по имени" value={query} onChange={(e) => onQueryChange(e.target.value)} />
+        <input className="input w-64" placeholder="Поиск по имени или @нику" value={query} onChange={(e) => onQueryChange(e.target.value)} />
         <button className="btn-primary ml-auto" onClick={onAddStudent}>
           + Ученик
         </button>
