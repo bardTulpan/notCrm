@@ -169,6 +169,9 @@ public class LeadService {
 
         auditService.log(user.id(), "lead", id, "convert", null,
                 java.util.Map.of("studentId", student.getId().toString(), "studentName", student.getFullName()));
+        // Also on the student, so filtering the log by this student shows where they came from.
+        auditService.log(user.id(), "student", student.getId(), "create", null,
+                java.util.Map.of("fullName", student.getFullName(), "fromLead", true));
 
 
         return StudentDtos.toDto(student, firstStage.getNormDays());

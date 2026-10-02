@@ -392,6 +392,22 @@ class BusinessRulesIntegrationTest extends AbstractIntegrationTest {
         assertThat(studentId).isNotNull();
     }
 
+    @Test
+    void auditLogCanBeFilteredByStudentAndPeriod() throws Exception {
+        UUID studentId = createStudent(stageIds.get(0), daysAgo(1), daysAgo(1));
+        moveStage(studentId, stageIds.get(1));
+
+        JsonNode byStudent = getJson("/api/v1/audit-log?entityId=" + studentId, adminToken);
+        assertThat(byStudent.get("total").asLong()).isEqualTo(2); // create + move-stage
+        for (JsonNode item : byStudent.get("items")) {
+            assertThat(item.get("entityId").asText()).isEqualTo(studentId.toString());
+        }
+
+        String future = Instant.now().plus(1, ChronoUnit.DAYS).toString();
+        assertThat(getJson("/api/v1/audit-log?entityId=" + studentId + "&from=" + future, adminToken).get("total").asLong()).isZero();
+        assertThat(getJson("/api/v1/audit-log?entityId=" + studentId + "&to=" + future, adminToken).get("total").asLong()).isEqualTo(2);
+    }
+
     private void reorderStages(List<UUID> ids) throws Exception {
         String body = "{\"ids\":[" + ids.stream().map(id -> "\"" + id + "\"").collect(java.util.stream.Collectors.joining(",")) + "]}";
         mockMvc.perform(put("/api/v1/pipeline-stages/order")

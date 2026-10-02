@@ -21,8 +21,11 @@ public class AuditController {
     public AuditPageDto list(
             @RequestParam(required = false) UUID actorId,
             @RequestParam(required = false) String entityType,
+            @RequestParam(required = false) UUID entityId,
+            @RequestParam(required = false) java.time.Instant from,
+            @RequestParam(required = false) java.time.Instant to,
             @RequestParam(required = false, defaultValue = "0") int page,
             @RequestParam(required = false, defaultValue = "50") int size) {
-        return auditQueryService.list(actorId, entityType, page, size);
+        return auditQueryService.list(actorId, entityType, entityId, from, to, page, size);
     }
 }

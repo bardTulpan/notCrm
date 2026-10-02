@@ -4,6 +4,9 @@ import type { AuditPage } from '../types'
 export interface AuditFilters {
   actorId?: string
   entityType?: string
+  entityId?: string
+  from?: string
+  to?: string
   page?: number
   size?: number
 }
