@@ -355,6 +355,120 @@ class BusinessRulesIntegrationTest extends AbstractIntegrationTest {
         assertThat(found).isTrue();
     }
 
+    @Test
+    void reorderingStagesSwapsPositionsWithoutUniqueViolation() throws Exception {
+        List<UUID> original = new ArrayList<>(stageIds);
+        List<UUID> swapped = new ArrayList<>(original);
+        UUID tmp = swapped.get(2);
+        swapped.set(2, swapped.get(3));
+        swapped.set(3, tmp);
+
+        reorderStages(swapped);
+        JsonNode after = getJson("/api/v1/pipeline-stages", adminToken);
+        assertThat(after.get(2).get("id").asText()).isEqualTo(swapped.get(2).toString());
+        assertThat(after.get(3).get("id").asText()).isEqualTo(swapped.get(3).toString());
+
+        reorderStages(original); // leave the shared test DB as we found it
+        assertThat(getJson("/api/v1/pipeline-stages", adminToken).get(2).get("id").asText()).isEqualTo(original.get(2).toString());
+    }
+
+    @Test
+    void curatorWorkloadIsAdminOnlyAndCountsStudentsByHealth() throws Exception {
+        UUID studentId = createStudent(stageIds.get(0), daysAgo(45), daysAgo(45)); // red on a 30-day stage
+
+        mockMvc.perform(get("/api/v1/stats/curator-workload").header("Authorization", "Bearer " + curatorToken))
+                .andExpect(status().isForbidden());
+
+        JsonNode rows = getJson("/api/v1/stats/curator-workload", adminToken);
+        JsonNode mine = null;
+        for (JsonNode r : rows) {
+            if (r.get("curatorId").asText().equals(curatorId.toString())) mine = r;
+        }
+        assertThat(mine).isNotNull();
+        assertThat(mine.get("students").asLong()).isGreaterThanOrEqualTo(1);
+        assertThat(mine.get("red").asLong()).isGreaterThanOrEqualTo(1);
+        assertThat(mine.get("green").asLong() + mine.get("yellow").asLong() + mine.get("red").asLong() + mine.get("paused").asLong())
+                .isEqualTo(mine.get("students").asLong());
+        assertThat(studentId).isNotNull();
+    }
+
+    @Test
+    void auditLogCanBeFilteredByStudentAndPeriod() throws Exception {
+        UUID studentId = createStudent(stageIds.get(0), daysAgo(1), daysAgo(1));
+        moveStage(studentId, stageIds.get(1));
+
+        JsonNode byStudent = getJson("/api/v1/audit-log?entityId=" + studentId, adminToken);
+        assertThat(byStudent.get("total").asLong()).isEqualTo(2); // create + move-stage
+        for (JsonNode item : byStudent.get("items")) {
+            assertThat(item.get("entityId").asText()).isEqualTo(studentId.toString());
+        }
+
+        String future = Instant.now().plus(1, ChronoUnit.DAYS).toString();
+        assertThat(getJson("/api/v1/audit-log?entityId=" + studentId + "&from=" + future, adminToken).get("total").asLong()).isZero();
+        assertThat(getJson("/api/v1/audit-log?entityId=" + studentId + "&to=" + future, adminToken).get("total").asLong()).isEqualTo(2);
+    }
+
+    @Test
+    void invalidInputGivesRealErrorCodesNotMaskedUnauthorized() throws Exception {
+        UUID someStage = stageIds.get(0);
+        String base = "\"fullName\":\"Validation Test\",\"currentStageId\":\"" + someStage + "\"";
+
+        // postpay outside 0..100 -> 400 (used to hit a DB check constraint and surface as 401/500)
+        mockMvc.perform(post("/api/v1/students").header("Authorization", "Bearer " + curatorToken)
+                        .contentType(MediaType.APPLICATION_JSON).content("{" + base + ",\"postpayPercent\":150}"))
+                .andExpect(status().isBadRequest());
+        // unknown cohort -> 404, not an FK violation
+        mockMvc.perform(post("/api/v1/students").header("Authorization", "Bearer " + curatorToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{" + base + ",\"cohortId\":\"" + UUID.randomUUID() + "\"}"))
+                .andExpect(status().isNotFound());
+        // "on stage since" in the future -> 400
+        mockMvc.perform(post("/api/v1/students").header("Authorization", "Bearer " + curatorToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{" + base + ",\"stageEnteredAt\":\"" + Instant.now().plus(10, ChronoUnit.DAYS) + "\"}"))
+                .andExpect(status().isBadRequest());
+        // broken JSON and a non-UUID path id -> 400
+        mockMvc.perform(post("/api/v1/students").header("Authorization", "Bearer " + curatorToken)
+                        .contentType(MediaType.APPLICATION_JSON).content("{bad"))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(get("/api/v1/students/not-a-uuid").header("Authorization", "Bearer " + curatorToken))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void studentsCanOnlyBeAssignedToActiveCurators() throws Exception {
+        UUID studentId = createStudent(stageIds.get(0), daysAgo(1), daysAgo(1));
+        UUID adminId = UUID.fromString(getJson("/api/v1/auth/me", adminToken).get("id").asText());
+
+        for (UUID bad : List.of(UUID.randomUUID(), adminId)) {
+            mockMvc.perform(post("/api/v1/students/" + studentId + "/assign-curator")
+                            .header("Authorization", "Bearer " + adminToken)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"curatorId\":\"" + bad + "\"}"))
+                    .andExpect(status().isBadRequest());
+        }
+        assertThat(getStudent(studentId, adminToken).get("curatorId").asText()).isEqualTo(curatorId.toString());
+    }
+
+    @Test
+    void curatorCanReadNamesOnlyDirectoryButNotTheUserList() throws Exception {
+        mockMvc.perform(get("/api/v1/users").header("Authorization", "Bearer " + curatorToken))
+                .andExpect(status().isForbidden());
+        JsonNode directory = getJson("/api/v1/directory/users", curatorToken);
+        assertThat(directory.size()).isGreaterThanOrEqualTo(2);
+        assertThat(directory.get(0).has("username")).isFalse();
+        assertThat(directory.get(0).has("fullName")).isTrue();
+    }
+
+    private void reorderStages(List<UUID> ids) throws Exception {
+        String body = "{\"ids\":[" + ids.stream().map(id -> "\"" + id + "\"").collect(java.util.stream.Collectors.joining(",")) + "]}";
+        mockMvc.perform(put("/api/v1/pipeline-stages/order")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().is2xxSuccessful());
+    }
+
     private String createStudentAsCurator(UUID stageId, String startedAt) throws Exception {
         return mockMvc.perform(post("/api/v1/students")
                         .header("Authorization", "Bearer " + curatorToken)

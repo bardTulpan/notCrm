@@ -3,7 +3,10 @@ package com.pipeline.crm.common.exception;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -56,6 +59,22 @@ public class GlobalExceptionHandler {
                 "Validation failed",
                 errors);
         return ResponseEntity.badRequest().body(body);
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ErrorResponse> handleUnreadable(HttpMessageNotReadableException ex) {
+        return build(HttpStatus.BAD_REQUEST, "Malformed request body");
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ErrorResponse> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        return build(HttpStatus.BAD_REQUEST, "Invalid value for '" + ex.getName() + "'");
+    }
+
+    /** Last line of defence for constraint/FK violations that slip past validation — a clear 409, never a masked 500/401. */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleDataIntegrity(DataIntegrityViolationException ex) {
+        return build(HttpStatus.CONFLICT, "Data conflict: the request references missing data or violates a constraint");
     }
 
     private ResponseEntity<ErrorResponse> build(HttpStatus status, String message) {

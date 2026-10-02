@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { Modal } from '../../components/Modal'
+import { NotesList } from '../../components/NotesList'
+import { TelegramLink } from '../../components/TelegramLink'
 import { Avatar } from '../../components/Avatar'
 import { useAuth } from '../../auth/useAuth'
 import { useCurators } from '../../hooks/useCurators'
@@ -182,11 +184,9 @@ export function StudentDetailsModal({
           </>
         ) : (
           <>
-            {student.telegramUsername && (
-              <span className="font-mono text-xs text-accent font-semibold">{student.telegramUsername}</span>
-            )}
+            <TelegramLink value={student.telegramUsername} className="font-semibold" />
             <span className="font-mono text-xs bg-success-soft text-success px-2 py-0.5 rounded-md font-semibold">
-              постоплата · {student.postpayPercent ?? '—'}%
+              постоплата · {student.postpayPercent != null ? `${student.postpayPercent}%` : '—'}
             </span>
             <span className="font-mono text-xs bg-accent-soft text-accent px-2 py-0.5 rounded-md font-semibold">
               план завершения · {plannedCompletionLabel(student, stages)}
@@ -281,14 +281,8 @@ export function StudentDetailsModal({
             </button>
           </div>
         </div>
-      ) : student.notes.length > 0 ? (
-        <div className="text-[13px] text-ink-600 leading-relaxed whitespace-pre-wrap">
-          {student.notes.map((n) => (
-            <div key={n.id}>{n.text}</div>
-          ))}
-        </div>
       ) : (
-        <div className="text-xs text-ink-400">Описания пока нет.</div>
+        <NotesList notes={student.notes} onAdd={startEditing} />
       )}
 
       <div className="text-xs font-semibold text-ink-600 uppercase tracking-wide mt-4 mb-2">Комментарии</div>

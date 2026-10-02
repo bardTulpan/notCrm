@@ -267,3 +267,17 @@ export interface AuditPage {
   page: number
   size: number
 }
+
+export interface CuratorWorkload {
+  curatorId: string
+  name: string
+  avatarColor: string | null
+  blocked: boolean
+  students: number
+  green: number
+  yellow: number
+  red: number
+  paused: number
+  newLast30Days: number
+  sharePct: number
+}

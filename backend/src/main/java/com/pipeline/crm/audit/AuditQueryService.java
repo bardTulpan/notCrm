@@ -19,6 +19,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -44,7 +45,8 @@ public class AuditQueryService {
     private final CohortRepository cohortRepository;
     private final PipelineStageRepository stageRepository;
 
-    public AuditPageDto list(UUID actorId, String entityType, int page, int size) {
+    /** {@code from} is inclusive, {@code to} exclusive; {@code entityId} narrows to one record (e.g. one student). */
+    public AuditPageDto list(UUID actorId, String entityType, UUID entityId, Instant from, Instant to, int page, int size) {
         int safePage = Math.max(page, 0);
         int safeSize = Math.min(Math.max(size, 1), 200);
 
@@ -53,6 +55,10 @@ public class AuditQueryService {
         if (entityType != null && !entityType.isBlank()) {
             spec = spec.and((root, query, cb) -> cb.equal(root.get("entityType"), entityType));
         }
+
+        if (entityId != null) spec = spec.and((root, query, cb) -> cb.equal(root.get("entityId"), entityId));
+        if (from != null) spec = spec.and((root, query, cb) -> cb.greaterThanOrEqualTo(root.get("createdAt"), from));
+        if (to != null) spec = spec.and((root, query, cb) -> cb.lessThan(root.get("createdAt"), to));
 
         Page<AuditLog> result = auditLogRepository.findAll(spec,
                 PageRequest.of(safePage, safeSize, Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id"))));
@@ -76,7 +82,8 @@ public class AuditQueryService {
         String q = "«" + entity + "»";
         return switch (row.getEntityType()) {
             case "student" -> switch (row.getAction()) {
-                case "create" -> "завёл ученика " + q;
+                case "create" -> after != null && after.path("fromLead").asBoolean(false)
+                        ? "завёл ученика " + q + " из лида" : "завёл ученика " + q;
                 case "move-stage" -> {
                     String to = names.stage(text(after, "toStageId") != null ? text(after, "toStageId") : legacyId(after));
                     String from = text(after, "fromStageId") != null ? names.stage(text(after, "fromStageId")) : null;

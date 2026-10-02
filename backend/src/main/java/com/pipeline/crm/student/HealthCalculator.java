@@ -38,6 +38,7 @@ public final class HealthCalculator {
     }
 
     public static long daysOnStage(Student student) {
-        return ChronoUnit.DAYS.between(student.getStageEnteredAt(), Instant.now());
+        // Never negative: a stageEnteredAt in the future (bad legacy data) must not render as "-1186 дн."
+        return Math.max(0, ChronoUnit.DAYS.between(student.getStageEnteredAt(), Instant.now()));
     }
 }

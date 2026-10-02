@@ -1,4 +1,5 @@
 import { pingStatus } from '../../utils/pingStatus'
+import { TelegramLink } from '../../components/TelegramLink'
 import { pingBadgeClass } from '../../components/TimeBadge'
 import type { LeadDto } from '../../types'
 
@@ -29,7 +30,7 @@ export function LeadCard({
       <div className="flex-1 min-w-0 cursor-pointer" onClick={onEdit}>
         <div className="flex items-baseline gap-2 flex-wrap">
           <span className="font-display font-semibold text-[14px] whitespace-nowrap">{lead.name}</span>
-          {lead.telegramUsername && <span className="font-mono text-xs text-accent whitespace-nowrap">{lead.telegramUsername}</span>}
+          <TelegramLink value={lead.telegramUsername} />
           {lead.priceDescription && (
             <span className="font-mono text-xs bg-bg px-1.5 py-0.5 rounded-md whitespace-nowrap">{lead.priceDescription}</span>
           )}

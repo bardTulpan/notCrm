@@ -1,7 +1,17 @@
 import { client } from './client'
 import type { CreateUserRequest, UpdateUserRequest, UserDto } from '../types'
 
+export interface DirectoryEntry {
+  id: string
+  fullName: string
+  avatarColor: string | null
+  role: 'ADMIN' | 'CURATOR'
+  blocked: boolean
+}
+
 export const usersApi = {
+  directory: () => client.get<DirectoryEntry[]>('/directory/users').then((r) => r.data),
+
   list: () => client.get<UserDto[]>('/users').then((r) => r.data),
 
   get: (id: string) => client.get<UserDto>(`/users/${id}`).then((r) => r.data),

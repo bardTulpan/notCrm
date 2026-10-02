@@ -33,6 +33,8 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        // Error dispatches (e.g. after an unhandled 400/500) must not be re-authenticated, or the real status becomes 401.
+                        .dispatcherTypeMatchers(jakarta.servlet.DispatcherType.ERROR).permitAll()
                         .requestMatchers("/api/v1/health", "/api/v1/auth/login", "/api/v1/auth/refresh").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .anyRequest().authenticated())
