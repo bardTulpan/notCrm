@@ -15,7 +15,7 @@ function linkify(text: string): ReactNode[] {
   )
 }
 
-/** Read-only description: one row per note, with a bullet and clickable links. */
+/** Read-only description: one line per note in a neutral panel, with clickable links. */
 export function NotesList({ notes, emptyText = 'Описания пока нет.', onAdd }: { notes: { id?: string; text: string }[]; emptyText?: string; onAdd?: () => void }) {
   if (notes.length === 0) {
     return (
@@ -30,16 +30,12 @@ export function NotesList({ notes, emptyText = 'Описания пока нет
     )
   }
   return (
-    <ul className="rounded-xl bg-accent-soft/50 border border-accent/10 px-4 py-1 list-none m-0">
+    <div className="rounded-xl bg-bg border border-border px-4 py-3 flex flex-col gap-1.5 text-[14px] leading-snug text-ink-900">
       {notes.map((n, i) => (
-        <li
-          key={n.id ?? i}
-          className={`flex items-start gap-2.5 py-2.5 text-[14px] leading-snug text-ink-900 ${i > 0 ? 'border-t border-accent/10' : ''}`}
-        >
-          <span className="mt-[7px] w-1.5 h-1.5 rounded-full bg-accent flex-shrink-0" />
-          <span className="whitespace-pre-wrap min-w-0">{linkify(n.text)}</span>
-        </li>
+        <div key={n.id ?? i} className="whitespace-pre-wrap min-w-0">
+          {linkify(n.text)}
+        </div>
       ))}
-    </ul>
+    </div>
   )
 }
