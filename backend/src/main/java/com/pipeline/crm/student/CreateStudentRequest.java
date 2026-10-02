@@ -9,6 +9,7 @@ import java.util.UUID;
 
 public record CreateStudentRequest(
         @NotBlank @Size(max = 200) String fullName,
+        @Size(max = 100) String telegramUsername,
         UUID curatorId,
         UUID cohortId,
         @NotNull UUID currentStageId,

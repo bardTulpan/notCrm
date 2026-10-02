@@ -7,6 +7,7 @@ import java.util.UUID;
 public record StudentDto(
         UUID id,
         String fullName,
+        String telegramUsername,
         UUID sourceLeadId,
         UUID currentStageId,
         UUID curatorId,

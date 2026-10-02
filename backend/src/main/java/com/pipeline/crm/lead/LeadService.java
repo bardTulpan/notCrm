@@ -1,6 +1,7 @@
 package com.pipeline.crm.lead;
 
 import com.pipeline.crm.audit.AuditService;
+import com.pipeline.crm.cohort.CohortService;
 import com.pipeline.crm.common.exception.ConflictException;
 import com.pipeline.crm.common.exception.NotFoundException;
 import com.pipeline.crm.pipeline.PipelineStageAccessor;
@@ -25,6 +26,7 @@ public class LeadService {
     private final StudentRepository studentRepository;
     private final StudentStageHistoryRepository stageHistoryRepository;
     private final AuditService auditService;
+    private final CohortService cohortService;
 
     public List<LeadDto> list(LeadStatus status, String search, UUID assignedCuratorId,
                                Instant pingFrom, Instant pingTo, CurrentUser user) {
@@ -132,11 +134,13 @@ public class LeadService {
         Student student = new Student();
         student.setFullName(lead.getName());
         student.setSourceLeadId(lead.getId());
+        student.setTelegramUsername(lead.getTelegramUsername());
         student.setCurrentStageId(firstStage.getId());
         student.setCuratorId(curatorId);
-        student.setCohortId(request.cohortId());
-        student.setStageEnteredAt(request.startedAt() != null ? request.startedAt() : Instant.now());
-        student.setStartedAt(request.startedAt() != null ? request.startedAt() : Instant.now());
+        Instant startedAt = request.startedAt() != null ? request.startedAt() : Instant.now();
+        student.setCohortId(request.cohortId() != null ? request.cohortId() : cohortService.resolveForMonth(startedAt, user));
+        student.setStageEnteredAt(startedAt);
+        student.setStartedAt(startedAt);
         student.setPostpayPercent(request.postpayPercent() != null ? request.postpayPercent() : lead.getPostpayPercent());
         student.setCreatedById(user.id());
         student.setStagePosition(studentRepository.nextStagePosition(firstStage.getId()));
@@ -164,7 +168,8 @@ public class LeadService {
         leadRepository.save(lead);
 
         auditService.log(user.id(), "lead", id, "convert", null,
-                java.util.Map.of("studentId", student.getId().toString()));
+                java.util.Map.of("studentId", student.getId().toString(), "studentName", student.getFullName()));
+
 
         return StudentDtos.toDto(student, firstStage.getNormDays());
     }

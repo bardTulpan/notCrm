@@ -9,6 +9,7 @@ import { useToast, apiErrorMessage } from '../hooks/useToast'
 import { StudentFilters } from './students/StudentFilters'
 import { KanbanBoard } from './students/KanbanBoard'
 import { StudentDetailsModal } from './students/StudentDetailsModal'
+import { AddStudentModal } from './students/AddStudentModal'
 import type { StudentDto } from '../types'
 
 /** Mirrors the backend's reorder() placement so the board updates instantly, before the server confirms. */
@@ -47,6 +48,7 @@ export function StudentsPage() {
   const [onlyStuck, setOnlyStuck] = useState(false)
   const [selectedCuratorIds, setSelectedCuratorIds] = useState<Set<string>>(new Set())
   const [openStudentId, setOpenStudentId] = useState<string | null>(null)
+  const [adding, setAdding] = useState(false)
 
   const refetch = useCallback(() => {
     setError(null)
@@ -90,7 +92,7 @@ export function StudentsPage() {
           const targetStage = stages.find((s) => s.id === stageId)
           push('success', `${student.fullName} → ${targetStage?.name ?? 'другой этап'}`, {
             actionLabel: 'Отменить',
-            durationMs: 5000,
+            durationMs: 7000,
             onAction: () => {
               studentsApi.reorder(studentId, originalStageId, null).catch(() => undefined).finally(refetch)
             },
@@ -120,6 +122,7 @@ export function StudentsPage() {
         onToggleCurator={toggleCurator}
         onlyStuck={onlyStuck}
         onToggleStuck={() => setOnlyStuck((v) => !v)}
+        onAddStudent={() => setAdding(true)}
       />
       {visible.length === 0 ? (
         <EmptyState />
@@ -132,6 +135,7 @@ export function StudentsPage() {
           onReorder={reorderStudent}
         />
       )}
+      {adding && <AddStudentModal stages={stages} onClose={() => setAdding(false)} onCreated={refetch} />}
       {openStudent && (
         <StudentDetailsModal
           student={openStudent}

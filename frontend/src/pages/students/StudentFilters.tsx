@@ -8,6 +8,7 @@ export function StudentFilters({
   onToggleCurator,
   onlyStuck,
   onToggleStuck,
+  onAddStudent,
 }: {
   query: string
   onQueryChange: (v: string) => void
@@ -15,6 +16,7 @@ export function StudentFilters({
   onToggleCurator: (id: string | 'all') => void
   onlyStuck: boolean
   onToggleStuck: () => void
+  onAddStudent: () => void
 }) {
   const { user } = useAuth()
   const { curators } = useCurators()
@@ -22,8 +24,11 @@ export function StudentFilters({
 
   return (
     <div>
-      <div className="mb-4">
-        <input className="input w-60" placeholder="Поиск ученика по имени" value={query} onChange={(e) => onQueryChange(e.target.value)} />
+      <div className="mb-4 flex items-center gap-3">
+        <input className="input w-64" placeholder="Поиск по имени или @нику" value={query} onChange={(e) => onQueryChange(e.target.value)} />
+        <button className="btn-primary ml-auto" onClick={onAddStudent}>
+          + Ученик
+        </button>
       </div>
       <div className="flex items-center gap-2.5 mb-4 flex-wrap">
         {user?.role === 'ADMIN' && (

@@ -130,6 +130,11 @@ class BusinessRulesIntegrationTest extends AbstractIntegrationTest {
             cumulativeBeforeTarget += norms.get(i);
         }
         long elapsedDays = cumulativeBeforeTarget + (norms.get(targetIdx) / 2);
+        // Students created without a cohort auto-create "<Month> <Year>" cohorts starting on the 1st;
+        // avoid colliding with one of those on the unique cohort start_date.
+        if (LocalDate.now(ZoneOffset.UTC).minusDays(elapsedDays).getDayOfMonth() == 1) {
+            elapsedDays += 1;
+        }
         int expectedPlannedPosition = positions.get(targetIdx);
 
         LocalDate startDate = LocalDate.now(ZoneOffset.UTC).minusDays(elapsedDays);
@@ -289,6 +294,82 @@ class BusinessRulesIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(status().isCreated())
                 .andReturn();
         return UUID.fromString(objectMapper.readTree(result.getResponse().getContentAsString()).get("id").asText());
+    }
+
+    @Test
+    void curatorCreatedStudentGetsCohortOfStartMonthEvenIfNoneExistedYet() throws Exception {
+        String first = createStudentAsCurator(stageIds.get(0), "2026-01-15T00:00:00Z");
+        String second = createStudentAsCurator(stageIds.get(0), "2026-01-28T00:00:00Z");
+
+        JsonNode firstStudent = objectMapper.readTree(first);
+        assertThat(firstStudent.get("cohortId").isNull()).isFalse();
+        assertThat(objectMapper.readTree(second).get("cohortId").asText()).isEqualTo(firstStudent.get("cohortId").asText());
+
+        JsonNode cohorts = getJson("/api/v1/cohorts", adminToken);
+        boolean found = false;
+        for (JsonNode c : cohorts) {
+            if (c.get("id").asText().equals(firstStudent.get("cohortId").asText())) {
+                assertThat(c.get("name").asText()).isEqualTo("Январь 2026");
+                assertThat(c.get("startDate").asText()).isEqualTo("2026-01-01");
+                found = true;
+            }
+        }
+        assertThat(found).isTrue();
+    }
+
+    @Test
+    void movingBackToThePreviousStageRestoresDaysOnStage() throws Exception {
+        UUID studentId = createStudent(stageIds.get(0), daysAgo(12), daysAgo(12));
+        String originalEnteredAt = getStudent(studentId, adminToken).get("stageEnteredAt").asText();
+
+        moveStage(studentId, stageIds.get(1));
+        assertThat(getStudent(studentId, adminToken).get("daysOnStage").asInt()).isZero();
+
+        moveStage(studentId, stageIds.get(0));
+        JsonNode back = getStudent(studentId, adminToken);
+        assertThat(Instant.parse(back.get("stageEnteredAt").asText())).isEqualTo(Instant.parse(originalEnteredAt));
+        assertThat(back.get("daysOnStage").asInt()).isEqualTo(12);
+
+        JsonNode history = getJson("/api/v1/students/" + studentId + "/history", adminToken).get("stages");
+        assertThat(history).hasSize(1);
+        assertThat(history.get(0).get("exitedAt").isNull()).isTrue();
+    }
+
+    @Test
+    void auditLogIsAdminOnlyAndDescribesStageMoves() throws Exception {
+        UUID studentId = createStudent(stageIds.get(0), daysAgo(1), daysAgo(1));
+        moveStage(studentId, stageIds.get(1));
+
+        mockMvc.perform(get("/api/v1/audit-log").header("Authorization", "Bearer " + curatorToken))
+                .andExpect(status().isForbidden());
+
+        JsonNode page = getJson("/api/v1/audit-log?entityType=student&size=20", adminToken);
+        boolean found = false;
+        for (JsonNode item : page.get("items")) {
+            if (item.get("entityId").asText().equals(studentId.toString()) && item.get("action").asText().equals("move-stage")) {
+                assertThat(item.get("description").asText()).contains("перенёс ученика");
+                found = true;
+            }
+        }
+        assertThat(found).isTrue();
+    }
+
+    private String createStudentAsCurator(UUID stageId, String startedAt) throws Exception {
+        return mockMvc.perform(post("/api/v1/students")
+                        .header("Authorization", "Bearer " + curatorToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"fullName\":\"Cohort Test " + UUID.randomUUID() + "\",\"currentStageId\":\"" + stageId
+                                + "\",\"startedAt\":\"" + startedAt + "\"}"))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+    }
+
+    private void moveStage(UUID studentId, UUID stageId) throws Exception {
+        mockMvc.perform(post("/api/v1/students/" + studentId + "/move-stage")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"stageId\":\"" + stageId + "\"}"))
+                .andExpect(status().isOk());
     }
 
     private void patchStageEnteredAt(UUID studentId, String stageEnteredAt) throws Exception {

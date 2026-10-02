@@ -51,7 +51,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         {items.map((t) => (
           <div
             key={t.id}
-            className={`card px-4 py-3 text-sm shadow-lg min-w-[240px] overflow-hidden relative ${
+            className={`card shadow-lg overflow-hidden relative ${
+              t.actionLabel ? 'px-3 py-1.5 text-xs min-w-[160px]' : 'px-4 py-3 text-sm min-w-[240px]'
+            } ${
               t.kind === 'error' ? 'bg-warn-soft border-warn text-warn' : 'bg-success-soft border-success text-success'
             }`}
           >
