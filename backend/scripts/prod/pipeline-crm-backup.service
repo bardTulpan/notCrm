@@ -1,0 +1,8 @@
+[Unit]
+Description=Pipeline CRM database backup
+After=postgresql.service
+
+[Service]
+Type=oneshot
+User=postgres
+ExecStart=/usr/local/bin/pipeline-crm-backup.sh
