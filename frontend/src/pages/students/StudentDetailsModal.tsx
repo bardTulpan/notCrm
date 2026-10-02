@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Modal } from '../../components/Modal'
+import { NotesList } from '../../components/NotesList'
 import { TelegramLink } from '../../components/TelegramLink'
 import { Avatar } from '../../components/Avatar'
 import { useAuth } from '../../auth/useAuth'
@@ -280,14 +281,8 @@ export function StudentDetailsModal({
             </button>
           </div>
         </div>
-      ) : student.notes.length > 0 ? (
-        <div className="text-[13px] text-ink-600 leading-relaxed whitespace-pre-wrap">
-          {student.notes.map((n) => (
-            <div key={n.id}>{n.text}</div>
-          ))}
-        </div>
       ) : (
-        <div className="text-xs text-ink-400">Описания пока нет.</div>
+        <NotesList notes={student.notes} onAdd={startEditing} />
       )}
 
       <div className="text-xs font-semibold text-ink-600 uppercase tracking-wide mt-4 mb-2">Комментарии</div>
