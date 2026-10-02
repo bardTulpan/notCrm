@@ -12,6 +12,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
@@ -361,7 +362,7 @@ class BusinessRulesIntegrationTest extends AbstractIntegrationTest {
                         .content("{\"fullName\":\"Cohort Test " + UUID.randomUUID() + "\",\"currentStageId\":\"" + stageId
                                 + "\",\"startedAt\":\"" + startedAt + "\"}"))
                 .andExpect(status().isCreated())
-                .andReturn().getResponse().getContentAsString();
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
     }
 
     private void moveStage(UUID studentId, UUID stageId) throws Exception {
@@ -409,6 +410,7 @@ class BusinessRulesIntegrationTest extends AbstractIntegrationTest {
         MvcResult result = mockMvc.perform(get(url).header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andReturn();
-        return objectMapper.readTree(result.getResponse().getContentAsString());
+        // The JSON response has no charset; MockMvc would otherwise decode it as ISO-8859-1 and garble Cyrillic.
+        return objectMapper.readTree(result.getResponse().getContentAsString(StandardCharsets.UTF_8));
     }
 }
