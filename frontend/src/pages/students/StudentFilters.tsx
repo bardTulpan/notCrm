@@ -9,7 +9,6 @@ export function StudentFilters({
   onlyStuck,
   onToggleStuck,
   onAddStudent,
-  onExport,
 }: {
   query: string
   onQueryChange: (v: string) => void
@@ -18,7 +17,6 @@ export function StudentFilters({
   onlyStuck: boolean
   onToggleStuck: () => void
   onAddStudent: () => void
-  onExport: () => void
 }) {
   const { user } = useAuth()
   const { curators } = useCurators()
@@ -28,10 +26,7 @@ export function StudentFilters({
     <div>
       <div className="mb-4 flex items-center gap-3">
         <input className="input w-64" placeholder="Поиск по имени или @нику" value={query} onChange={(e) => onQueryChange(e.target.value)} />
-        <button className="btn-ghost ml-auto" onClick={onExport} title="Скачать список (с учётом фильтров) в CSV">
-          Экспорт CSV
-        </button>
-        <button className="btn-primary" onClick={onAddStudent}>
+        <button className="btn-primary ml-auto" onClick={onAddStudent}>
           + Ученик
         </button>
       </div>

@@ -29,8 +29,6 @@ export function CuratorWorkloadTable({ rows }: { rows: CuratorWorkload[] }) {
             <th className={TH}>Куратор</th>
             <th className={TH}>Учеников</th>
             <th className={`${TH} w-[260px]`}>Состояние учеников</th>
-            <th className={TH}>Лиды в работе</th>
-            <th className={TH}>Пинги просрочены</th>
             <th className={TH}>Новых за 30 дн.</th>
           </tr>
         </thead>
@@ -61,8 +59,6 @@ export function CuratorWorkloadTable({ rows }: { rows: CuratorWorkload[] }) {
                   {r.green} / {r.yellow} / <span className={r.red > 0 ? 'text-warn font-semibold' : ''}>{r.red}</span> / {r.paused}
                 </div>
               </td>
-              <td className={`${TD} font-mono text-xs`}>{r.activeLeads}</td>
-              <td className={`${TD} font-mono text-xs ${r.overduePings > 0 ? 'text-warn font-semibold' : ''}`}>{r.overduePings}</td>
               <td className={`${TD} font-mono text-xs`}>{r.newLast30Days}</td>
             </tr>
           ))}

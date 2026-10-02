@@ -9,6 +9,7 @@ import { StageSettings } from './admin/StageSettings'
 import { CohortSettings } from './admin/CohortSettings'
 import { UserManagement } from './admin/UserManagement'
 import { AuditLog } from './admin/AuditLog'
+import { ExportData } from './admin/ExportData'
 import { pluralRu } from '../utils/plural'
 import type { UserDto } from '../types'
 
@@ -28,7 +29,7 @@ function timeToOfferLabel(stages: { position: number; normDays: number | null }[
 export function AdminPage() {
   const { stages, loading: stagesLoading, error: stagesError, refetch: refetchStages } = useStages()
   const { cohorts, loading: cohortsLoading, error: cohortsError, refetch: refetchCohorts } = useCohorts()
-  const [tab, setTab] = useState<'settings' | 'logs'>('settings')
+  const [tab, setTab] = useState<'settings' | 'logs' | 'export'>('settings')
   const [users, setUsers] = useState<UserDto[]>([])
   const [usersLoading, setUsersLoading] = useState(true)
   const [usersError, setUsersError] = useState<string | null>(null)
@@ -59,6 +60,9 @@ export function AdminPage() {
         <button className={`chip ${tab === 'logs' ? 'active' : ''}`} onClick={() => setTab('logs')}>
           Логи
         </button>
+        <button className={`chip ${tab === 'export' ? 'active' : ''}`} onClick={() => setTab('export')}>
+          Экспорт
+        </button>
       </div>
       {tab === 'settings' ? (
         <div className="flex flex-col gap-8">
@@ -70,8 +74,10 @@ export function AdminPage() {
           <CohortSettings cohorts={cohorts} onChanged={refetchCohorts} />
           <UserManagement users={users} onChanged={refetchUsers} />
         </div>
-      ) : (
+      ) : tab === 'logs' ? (
         <AuditLog users={users} />
+      ) : (
+        <ExportData stages={stages} cohorts={cohorts} users={users} />
       )}
     </div>
   )

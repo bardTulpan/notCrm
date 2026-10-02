@@ -70,8 +70,8 @@ export function StatisticsPage() {
   function exportWorkload() {
     downloadCsv(
       `нагрузка-кураторов-${csvDateStamp()}.csv`,
-      ['Куратор', 'Учеников', 'Доля, %', 'В норме', 'Подходят к норме', 'Превысили норму', 'На паузе', 'Лиды в работе', 'Пинги просрочены', 'Новых за 30 дн.'],
-      workload.map((w) => [w.name, w.students, w.sharePct, w.green, w.yellow, w.red, w.paused, w.activeLeads, w.overduePings, w.newLast30Days]),
+      ['Куратор', 'Учеников', 'Доля, %', 'В норме', 'Подходят к норме', 'Превысили норму', 'На паузе', 'Новых за 30 дн.'],
+      workload.map((w) => [w.name, w.students, w.sharePct, w.green, w.yellow, w.red, w.paused, w.newLast30Days]),
     )
   }
 

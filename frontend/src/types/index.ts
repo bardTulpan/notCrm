@@ -278,8 +278,6 @@ export interface CuratorWorkload {
   yellow: number
   red: number
   paused: number
-  activeLeads: number
-  overduePings: number
   newLast30Days: number
   sharePct: number
 }

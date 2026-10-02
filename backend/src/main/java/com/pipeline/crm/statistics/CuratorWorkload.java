@@ -13,8 +13,6 @@ public record CuratorWorkload(
         long yellow,
         long red,
         long paused,
-        long activeLeads,
-        long overduePings,
         long newLast30Days,
         int sharePct
 ) {
