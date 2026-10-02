@@ -8,6 +8,7 @@ import { apiErrorMessage } from '../hooks/useToast'
 import { StageSettings } from './admin/StageSettings'
 import { CohortSettings } from './admin/CohortSettings'
 import { UserManagement } from './admin/UserManagement'
+import { AuditLog } from './admin/AuditLog'
 import { pluralRu } from '../utils/plural'
 import type { UserDto } from '../types'
 
@@ -27,6 +28,7 @@ function timeToOfferLabel(stages: { position: number; normDays: number | null }[
 export function AdminPage() {
   const { stages, loading: stagesLoading, error: stagesError, refetch: refetchStages } = useStages()
   const { cohorts, loading: cohortsLoading, error: cohortsError, refetch: refetchCohorts } = useCohorts()
+  const [tab, setTab] = useState<'settings' | 'logs'>('settings')
   const [users, setUsers] = useState<UserDto[]>([])
   const [usersLoading, setUsersLoading] = useState(true)
   const [usersError, setUsersError] = useState<string | null>(null)
@@ -49,14 +51,28 @@ export function AdminPage() {
   }
 
   return (
-    <div className="flex flex-col gap-8">
-      <div className="card px-5 py-4 min-w-[200px] self-start">
-        <div className="font-display font-bold text-2xl">{timeToOfferLabel(stages)}</div>
-        <div className="text-xs text-ink-600 mt-0.5">Ожидаемое время с нуля до оффера (этапы 1–8)</div>
+    <div className="flex flex-col gap-6">
+      <div className="flex gap-2">
+        <button className={`chip ${tab === 'settings' ? 'active' : ''}`} onClick={() => setTab('settings')}>
+          Настройки
+        </button>
+        <button className={`chip ${tab === 'logs' ? 'active' : ''}`} onClick={() => setTab('logs')}>
+          Логи
+        </button>
       </div>
-      <StageSettings stages={stages} onChanged={refetchStages} />
-      <CohortSettings cohorts={cohorts} onChanged={refetchCohorts} />
-      <UserManagement users={users} onChanged={refetchUsers} />
+      {tab === 'settings' ? (
+        <div className="flex flex-col gap-8">
+          <div className="card px-5 py-4 min-w-[200px] self-start">
+            <div className="font-display font-bold text-2xl">{timeToOfferLabel(stages)}</div>
+            <div className="text-xs text-ink-600 mt-0.5">Ожидаемое время с нуля до оффера (этапы 1–8)</div>
+          </div>
+          <StageSettings stages={stages} onChanged={refetchStages} />
+          <CohortSettings cohorts={cohorts} onChanged={refetchCohorts} />
+          <UserManagement users={users} onChanged={refetchUsers} />
+        </div>
+      ) : (
+        <AuditLog users={users} />
+      )}
     </div>
   )
 }

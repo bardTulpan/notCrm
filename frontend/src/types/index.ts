@@ -245,3 +245,22 @@ export interface ApiError {
   message: string
   errors?: Record<string, string>
 }
+
+export interface AuditLogDto {
+  id: string
+  createdAt: string
+  actorId: string | null
+  actorName: string
+  entityType: string
+  entityId: string
+  entityName: string
+  action: string
+  description: string
+}
+
+export interface AuditPage {
+  items: AuditLogDto[]
+  total: number
+  page: number
+  size: number
+}
