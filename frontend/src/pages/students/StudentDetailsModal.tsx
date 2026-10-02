@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Modal } from '../../components/Modal'
+import { TelegramLink } from '../../components/TelegramLink'
 import { Avatar } from '../../components/Avatar'
 import { useAuth } from '../../auth/useAuth'
 import { useCurators } from '../../hooks/useCurators'
@@ -182,9 +183,7 @@ export function StudentDetailsModal({
           </>
         ) : (
           <>
-            {student.telegramUsername && (
-              <span className="font-mono text-xs text-accent font-semibold">{student.telegramUsername}</span>
-            )}
+            <TelegramLink value={student.telegramUsername} className="font-semibold" />
             <span className="font-mono text-xs bg-success-soft text-success px-2 py-0.5 rounded-md font-semibold">
               постоплата · {student.postpayPercent ?? '—'}%
             </span>
