@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
 
@@ -59,6 +61,43 @@ public class CohortService {
         cohort.setArchivedAt(Instant.now());
         cohortRepository.save(cohort);
         auditService.log(actor.id(), "cohort", id, "archive", null, toMap(cohort));
+    }
+
+    private static final String[] MONTHS_RU = {
+            "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
+            "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"};
+
+    /**
+     * Returns the cohort for the calendar month of {@code date} (UTC), creating it ("Январь 2026",
+     * starting on the 1st) when none exists yet — so a student starting in a month nobody set up
+     * a cohort for still lands in the cohort funnel instead of being left unassigned.
+     */
+    @Transactional
+    public UUID resolveForMonth(Instant date, CurrentUser actor) {
+        LocalDate day = date.atZone(ZoneOffset.UTC).toLocalDate();
+        LocalDate first = day.withDayOfMonth(1);
+        LocalDate last = day.withDayOfMonth(day.lengthOfMonth());
+
+        var existing = cohortRepository.findFirstByArchivedAtIsNullAndStartDateBetweenOrderByStartDateAsc(first, last);
+        if (existing.isPresent()) {
+            return existing.get().getId();
+        }
+        // An archived cohort on the 1st would collide with the unique start_date: bring it back instead.
+        var archived = cohortRepository.findByStartDate(first);
+        if (archived.isPresent()) {
+            Cohort cohort = archived.get();
+            cohort.setArchivedAt(null);
+            cohortRepository.save(cohort);
+            auditService.log(actor.id(), "cohort", cohort.getId(), "restore", null, toMap(cohort));
+            return cohort.getId();
+        }
+
+        Cohort cohort = new Cohort();
+        cohort.setName(MONTHS_RU[first.getMonthValue() - 1] + " " + first.getYear());
+        cohort.setStartDate(first);
+        cohortRepository.save(cohort);
+        auditService.log(actor.id(), "cohort", cohort.getId(), "create", null, toMap(cohort));
+        return cohort.getId();
     }
 
     public Cohort require(UUID id) {

@@ -6,7 +6,7 @@ import { useCohorts } from '../../hooks/useCohorts'
 import { useToast, apiErrorMessage } from '../../hooks/useToast'
 import { leadsApi } from '../../api/leads'
 import { toDateInputValue } from '../../utils/dates'
-import { pickCohortIdForDate } from '../../utils/cohorts'
+import { cohortNameForDate, pickCohortIdForDate } from '../../utils/cohorts'
 import type { LeadDto } from '../../types'
 
 export function ConvertLeadModal({ lead, onClose, onConverted }: { lead: LeadDto; onClose: () => void; onConverted: () => void }) {
@@ -21,8 +21,8 @@ export function ConvertLeadModal({ lead, onClose, onConverted }: { lead: LeadDto
   const [startedAt, setStartedAt] = useState(toDateInputValue(new Date().toISOString()))
   const [submitting, setSubmitting] = useState(false)
 
-  // Cohort isn't a field the curator picks here — it's derived from the start date
-  // (for cohort-funnel reporting) and can be corrected later from the student's card if needed.
+  // Cohort isn't a field the curator picks here — it's the cohort of the start date's month. If that month
+  // has none yet, the backend creates it on conversion. Admin can still correct it from the student's card.
   const cohortId = pickCohortIdForDate(startedAt, cohorts)
 
   async function onSubmit() {
@@ -81,6 +81,9 @@ export function ConvertLeadModal({ lead, onClose, onConverted }: { lead: LeadDto
             <input className="input w-full mt-1" type="date" value={startedAt} onChange={(e) => setStartedAt(e.target.value)} />
           </label>
         </div>
+        {startedAt && !cohortId && (
+          <div className="text-xs text-ink-600">Когорты на этот месяц ещё нет — будет создана «{cohortNameForDate(startedAt)}».</div>
+        )}
         <div className="flex justify-end gap-2 mt-2">
           <button className="btn-ghost" onClick={onClose}>
             Отмена

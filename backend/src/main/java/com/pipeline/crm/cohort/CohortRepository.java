@@ -12,4 +12,9 @@ public interface CohortRepository extends JpaRepository<Cohort, UUID> {
     boolean existsByName(String name);
 
     boolean existsByStartDate(java.time.LocalDate startDate);
+
+    java.util.Optional<Cohort> findFirstByArchivedAtIsNullAndStartDateBetweenOrderByStartDateAsc(
+            java.time.LocalDate from, java.time.LocalDate to);
+
+    java.util.Optional<Cohort> findByStartDate(java.time.LocalDate startDate);
 }
