@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useRef, type ReactNode } from 'react'
 
 export function Modal({
   title,
@@ -13,11 +13,19 @@ export function Modal({
   children: ReactNode
   width?: number
 }) {
+  // Close on a backdrop click only when the press *started* on the backdrop too. Otherwise selecting text
+  // inside the card and releasing the mouse outside it counts as a click on the backdrop and closes the modal.
+  const pressStartedOnBackdrop = useRef(false)
+
   return (
     <div
       className="fixed inset-0 bg-[rgba(18,21,28,0.45)] flex items-center justify-center z-50 p-5"
+      onMouseDown={(e) => {
+        pressStartedOnBackdrop.current = e.target === e.currentTarget
+      }}
       onClick={(e) => {
-        if (e.target === e.currentTarget) onClose()
+        if (e.target === e.currentTarget && pressStartedOnBackdrop.current) onClose()
+        pressStartedOnBackdrop.current = false
       }}
     >
       <div
