@@ -186,7 +186,7 @@ export function StudentDetailsModal({
           <>
             <TelegramLink value={student.telegramUsername} className="font-semibold" />
             <span className="font-mono text-xs bg-success-soft text-success px-2 py-0.5 rounded-md font-semibold">
-              постоплата · {student.postpayPercent ?? '—'}%
+              постоплата · {student.postpayPercent != null ? `${student.postpayPercent}%` : '—'}
             </span>
             <span className="font-mono text-xs bg-accent-soft text-accent px-2 py-0.5 rounded-md font-semibold">
               план завершения · {plannedCompletionLabel(student, stages)}

@@ -2,6 +2,7 @@ package com.pipeline.crm.student;
 
 import com.pipeline.crm.audit.AuditService;
 import com.pipeline.crm.cohort.CohortService;
+import com.pipeline.crm.user.CuratorGuard;
 import com.pipeline.crm.common.exception.ConflictException;
 import com.pipeline.crm.common.exception.ForbiddenException;
 import com.pipeline.crm.common.exception.NotFoundException;
@@ -31,6 +32,7 @@ public class StudentService {
     private final StudentCommentRepository commentRepository;
     private final AuditService auditService;
     private final CohortService cohortService;
+    private final CuratorGuard curatorGuard;
 
     public List<StudentDto> list(UUID stageId, UUID curatorId, UUID cohortId, boolean onlyOverdue, String search, CurrentUser user) {
         Specification<Student> spec = (root, query, cb) -> {
@@ -79,7 +81,9 @@ public class StudentService {
         if (user.isAdmin() && request.curatorId() == null) {
             throw new com.pipeline.crm.common.exception.BadRequestException("curatorId is required");
         }
-        UUID curatorId = user.isAdmin() ? request.curatorId() : user.id();
+        UUID curatorId = user.isAdmin() ? curatorGuard.requireAssignable(request.curatorId()) : user.id();
+        if (request.cohortId() != null) cohortService.require(request.cohortId());
+        requireNotInFuture(request.stageEnteredAt());
 
         Instant now = Instant.now();
         Student student = new Student();
@@ -116,7 +120,10 @@ public class StudentService {
         if (request.telegramUsername() != null) student.setTelegramUsername(blankToNull(request.telegramUsername()));
         if (request.postpayPercent() != null) student.setPostpayPercent(request.postpayPercent());
         if (request.startedAt() != null) student.setStartedAt(request.startedAt());
-        if (request.stageEnteredAt() != null) student.setStageEnteredAt(request.stageEnteredAt());
+        if (request.stageEnteredAt() != null) {
+            requireNotInFuture(request.stageEnteredAt());
+            student.setStageEnteredAt(request.stageEnteredAt());
+        }
         if (request.curatorId() != null) {
             if (!user.isAdmin() && !user.canReassign()) {
                 throw new ForbiddenException("Only admin can reassign curator");
@@ -127,6 +134,7 @@ public class StudentService {
             if (!user.isAdmin()) {
                 throw new ForbiddenException("Only admin can change cohort");
             }
+            cohortService.require(request.cohortId());
             student.setCohortId(request.cohortId());
         }
         if (request.notes() != null) {
@@ -346,6 +354,7 @@ public class StudentService {
         if (newCuratorId.equals(student.getCuratorId())) {
             return;
         }
+        curatorGuard.requireAssignable(newCuratorId);
         StudentCuratorHistory history = new StudentCuratorHistory();
         history.setStudentId(student.getId());
         history.setFromCuratorId(student.getCuratorId());
@@ -355,6 +364,13 @@ public class StudentService {
         student.setCuratorId(newCuratorId);
         auditService.log(user.id(), "student", student.getId(), "assign-curator", null,
                 Map.of("fromCuratorId", String.valueOf(history.getFromCuratorId()), "toCuratorId", newCuratorId.toString()));
+    }
+
+    /** "On stage since" can't be later than now (a few minutes of client clock skew tolerated) — it would show negative days. */
+    private static void requireNotInFuture(Instant value) {
+        if (value != null && value.isAfter(Instant.now().plusSeconds(300))) {
+            throw new com.pipeline.crm.common.exception.BadRequestException("Дата не может быть в будущем");
+        }
     }
 
     private static String blankToNull(String value) {

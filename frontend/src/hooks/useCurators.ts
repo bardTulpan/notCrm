@@ -1,28 +1,31 @@
 import { useEffect, useState } from 'react'
 import { usersApi } from '../api/users'
 import { useAuth } from '../auth/useAuth'
-import type { UserDto } from '../types'
+
+export interface CuratorOption {
+  id: string
+  fullName: string
+  avatarColor: string | null
+}
 
 /**
- * ADMIN can list all curators via /users. CURATOR cannot (403) and doesn't need to —
- * every lead/student they can see already belongs to them.
+ * Names for everyone (via the names-only /directory/users, open to every signed-in user — a curator needs the
+ * admin's name on a comment or the previous curator's name in a student's history) plus the list of active
+ * curators for pickers and filters.
  */
 export function useCurators() {
   const { user } = useAuth()
-  const [curators, setCurators] = useState<UserDto[]>([])
-  const [loading, setLoading] = useState(user?.role === 'ADMIN')
+  const [people, setPeople] = useState<{ id: string; fullName: string; avatarColor: string | null; role: string; blocked: boolean }[]>([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (user?.role !== 'ADMIN') {
-      setLoading(false)
-      return
-    }
     let cancelled = false
     usersApi
-      .list()
+      .directory()
       .then((list) => {
-        if (!cancelled) setCurators(list.filter((u) => u.role === 'CURATOR'))
+        if (!cancelled) setPeople(list)
       })
+      .catch(() => undefined)
       .finally(() => {
         if (!cancelled) setLoading(false)
       })
@@ -31,11 +34,16 @@ export function useCurators() {
     }
   }, [user])
 
-  function displayName(curatorId: string | null): { name: string; color: string | null } {
-    if (!curatorId) return { name: '—', color: null }
-    if (user?.id === curatorId) return { name: user.fullName, color: user.avatarColor }
-    const found = curators.find((c) => c.id === curatorId)
-    return found ? { name: found.fullName, color: found.avatarColor } : { name: '…', color: null }
+  // Admin's filter chips keep showing blocked curators too (they may still own students); pickers elsewhere want active ones.
+  const curators: CuratorOption[] = people
+    .filter((p) => p.role === 'CURATOR' && (user?.role === 'ADMIN' || !p.blocked))
+    .map(({ id, fullName, avatarColor }) => ({ id, fullName, avatarColor }))
+
+  function displayName(personId: string | null): { name: string; color: string | null } {
+    if (!personId) return { name: '—', color: null }
+    if (user?.id === personId) return { name: user.fullName, color: user.avatarColor }
+    const found = people.find((p) => p.id === personId)
+    return found ? { name: found.fullName, color: found.avatarColor } : { name: loading ? '…' : 'Неизвестный', color: null }
   }
 
   return { curators, loading, displayName }

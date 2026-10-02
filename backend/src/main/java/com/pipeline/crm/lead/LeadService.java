@@ -2,6 +2,7 @@ package com.pipeline.crm.lead;
 
 import com.pipeline.crm.audit.AuditService;
 import com.pipeline.crm.cohort.CohortService;
+import com.pipeline.crm.user.CuratorGuard;
 import com.pipeline.crm.common.exception.ConflictException;
 import com.pipeline.crm.common.exception.NotFoundException;
 import com.pipeline.crm.pipeline.PipelineStageAccessor;
@@ -27,6 +28,7 @@ public class LeadService {
     private final StudentStageHistoryRepository stageHistoryRepository;
     private final AuditService auditService;
     private final CohortService cohortService;
+    private final CuratorGuard curatorGuard;
 
     public List<LeadDto> list(LeadStatus status, String search, UUID assignedCuratorId,
                                Instant pingFrom, Instant pingTo, CurrentUser user) {
@@ -52,7 +54,7 @@ public class LeadService {
         lead.setNextPingAt(request.nextPingAt());
         lead.setStatus(LeadStatus.ACTIVE);
         lead.setCreatedById(user.id());
-        lead.setAssignedCuratorId(user.isAdmin() ? request.curatorId() : user.id());
+        lead.setAssignedCuratorId(user.isAdmin() ? (request.curatorId() != null ? curatorGuard.requireAssignable(request.curatorId()) : null) : user.id());
         applyNotes(lead, request.notes());
         leadRepository.save(lead);
         auditService.log(user.id(), "lead", lead.getId(), "create", null, toMap(lead));
@@ -71,7 +73,7 @@ public class LeadService {
             if (!user.isAdmin()) {
                 lead.setAssignedCuratorId(user.id());
             } else {
-                lead.setAssignedCuratorId(request.curatorId());
+                lead.setAssignedCuratorId(curatorGuard.requireAssignable(request.curatorId()));
             }
         }
         if (request.notes() != null) {
@@ -126,7 +128,8 @@ public class LeadService {
         if (user.isAdmin() && request.curatorId() == null) {
             throw new com.pipeline.crm.common.exception.BadRequestException("curatorId is required");
         }
-        UUID curatorId = user.isAdmin() ? request.curatorId() : user.id();
+        UUID curatorId = user.isAdmin() ? curatorGuard.requireAssignable(request.curatorId()) : user.id();
+        if (request.cohortId() != null) cohortService.require(request.cohortId());
 
         var firstStage = stageAccessor.firstActiveStage()
                 .orElseThrow(() -> new ConflictException("No active stage available"));
