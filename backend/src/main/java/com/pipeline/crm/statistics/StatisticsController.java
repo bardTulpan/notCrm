@@ -32,6 +32,12 @@ public class StatisticsController {
         return statisticsService.curators(actor());
     }
 
+    @GetMapping("/curator-workload")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
+    public List<CuratorWorkload> curatorWorkload() {
+        return statisticsService.workload();
+    }
+
     @GetMapping("/overdue-students")
     public List<OverdueStudent> overdueStudents() {
         return statisticsService.overdueStudents(actor());

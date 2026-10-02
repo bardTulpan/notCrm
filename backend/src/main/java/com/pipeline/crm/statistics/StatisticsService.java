@@ -2,6 +2,9 @@ package com.pipeline.crm.statistics;
 
 import com.pipeline.crm.cohort.Cohort;
 import com.pipeline.crm.cohort.CohortRepository;
+import com.pipeline.crm.lead.Lead;
+import com.pipeline.crm.lead.LeadRepository;
+import com.pipeline.crm.lead.LeadStatus;
 import com.pipeline.crm.pipeline.PipelineStage;
 import com.pipeline.crm.pipeline.PipelineStageRepository;
 import com.pipeline.crm.security.CurrentUser;
@@ -30,6 +33,7 @@ public class StatisticsService {
     private final PipelineStageRepository stageRepository;
     private final CohortRepository cohortRepository;
     private final UserRepository userRepository;
+    private final LeadRepository leadRepository;
 
     public StatsOverview overview(CurrentUser user) {
         List<Student> students = visibleStudents(user);
@@ -69,6 +73,41 @@ public class StatisticsService {
                 .filter(u -> u.getRole() == com.pipeline.crm.user.Role.CURATOR).toList()) {
             result.add(curatorStats(curator));
         }
+        return result;
+    }
+
+    /** Admin-only: how loaded each curator is — students by health, active leads, overdue pings, recent intake. */
+    public List<CuratorWorkload> workload() {
+        List<Student> all = studentRepository.findAll().stream().filter(s -> s.getDeletedAt() == null).toList();
+        Map<UUID, List<Student>> byCurator = new HashMap<>();
+        for (Student s : all) byCurator.computeIfAbsent(s.getCuratorId(), k -> new ArrayList<>()).add(s);
+        Instant now = Instant.now();
+        Instant monthAgo = now.minus(30, ChronoUnit.DAYS);
+
+        List<CuratorWorkload> result = new ArrayList<>();
+        for (User curator : userRepository.findAllActive().stream()
+                .filter(u -> u.getRole() == com.pipeline.crm.user.Role.CURATOR).toList()) {
+            List<Student> mine = byCurator.getOrDefault(curator.getId(), List.of());
+            long green = 0, yellow = 0, red = 0, paused = 0;
+            for (Student s : mine) {
+                switch (health(s)) {
+                    case "green" -> green++;
+                    case "yellow" -> yellow++;
+                    case "red" -> red++;
+                    default -> paused++;
+                }
+            }
+            List<Lead> leads = leadRepository.findByAssignedCuratorId(curator.getId()).stream()
+                    .filter(l -> l.getDeletedAt() == null && l.getStatus() == LeadStatus.ACTIVE)
+                    .toList();
+            long overduePings = leads.stream().filter(l -> l.getNextPingAt() != null && l.getNextPingAt().isBefore(now)).count();
+            long newRecent = mine.stream().filter(s -> s.getStartedAt().isAfter(monthAgo)).count();
+            int share = all.isEmpty() ? 0 : (int) Math.round(100.0 * mine.size() / all.size());
+            result.add(new CuratorWorkload(curator.getId(), curator.getFullName(), curator.getAvatarColor(),
+                    curator.getStatus() == com.pipeline.crm.user.UserStatus.BLOCKED,
+                    mine.size(), green, yellow, red, paused, leads.size(), overduePings, newRecent, share));
+        }
+        result.sort((a, b) -> Long.compare(b.students(), a.students()));
         return result;
     }
 

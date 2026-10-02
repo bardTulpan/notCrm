@@ -372,6 +372,26 @@ class BusinessRulesIntegrationTest extends AbstractIntegrationTest {
         assertThat(getJson("/api/v1/pipeline-stages", adminToken).get(2).get("id").asText()).isEqualTo(original.get(2).toString());
     }
 
+    @Test
+    void curatorWorkloadIsAdminOnlyAndCountsStudentsByHealth() throws Exception {
+        UUID studentId = createStudent(stageIds.get(0), daysAgo(45), daysAgo(45)); // red on a 30-day stage
+
+        mockMvc.perform(get("/api/v1/stats/curator-workload").header("Authorization", "Bearer " + curatorToken))
+                .andExpect(status().isForbidden());
+
+        JsonNode rows = getJson("/api/v1/stats/curator-workload", adminToken);
+        JsonNode mine = null;
+        for (JsonNode r : rows) {
+            if (r.get("curatorId").asText().equals(curatorId.toString())) mine = r;
+        }
+        assertThat(mine).isNotNull();
+        assertThat(mine.get("students").asLong()).isGreaterThanOrEqualTo(1);
+        assertThat(mine.get("red").asLong()).isGreaterThanOrEqualTo(1);
+        assertThat(mine.get("green").asLong() + mine.get("yellow").asLong() + mine.get("red").asLong() + mine.get("paused").asLong())
+                .isEqualTo(mine.get("students").asLong());
+        assertThat(studentId).isNotNull();
+    }
+
     private void reorderStages(List<UUID> ids) throws Exception {
         String body = "{\"ids\":[" + ids.stream().map(id -> "\"" + id + "\"").collect(java.util.stream.Collectors.joining(",")) + "]}";
         mockMvc.perform(put("/api/v1/pipeline-stages/order")

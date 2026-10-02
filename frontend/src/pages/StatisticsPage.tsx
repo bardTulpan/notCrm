@@ -10,18 +10,20 @@ import { StageStatisticsTable } from './stats/StageStatisticsTable'
 import { CuratorStatisticsTable } from './stats/CuratorStatisticsTable'
 import { OverdueStudentsTable } from './stats/OverdueStudentsTable'
 import { CohortFunnelTable } from './stats/CohortFunnelTable'
+import { CuratorWorkloadTable } from './stats/CuratorWorkloadTable'
 import { CohortDetailsModal } from './stats/CohortDetailsModal'
-import type { CohortStats, CuratorStats, OverdueStudent, StageStats, StatsOverview } from '../types'
+import type { CohortStats, CuratorStats, CuratorWorkload, OverdueStudent, StageStats, StatsOverview } from '../types'
 
 export function StatisticsPage() {
   const { user } = useAuth()
   const { stages, loading: stagesLoading } = useStages()
-  const [subTab, setSubTab] = useState<'main' | 'extra'>('main')
+  const [subTab, setSubTab] = useState<'main' | 'extra' | 'workload'>('main')
   const [overview, setOverview] = useState<StatsOverview | null>(null)
   const [stageStats, setStageStats] = useState<StageStats[]>([])
   const [curatorStats, setCuratorStats] = useState<CuratorStats[]>([])
   const [overdue, setOverdue] = useState<OverdueStudent[]>([])
   const [cohortStats, setCohortStats] = useState<CohortStats[]>([])
+  const [workload, setWorkload] = useState<CuratorWorkload[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [openCohortId, setOpenCohortId] = useState<string | null>(null)
@@ -34,17 +36,19 @@ export function StatisticsPage() {
       statisticsApi.curators(),
       statisticsApi.overdueStudents(),
       statisticsApi.cohorts(),
+      user?.role === 'ADMIN' ? statisticsApi.curatorWorkload() : Promise.resolve([] as CuratorWorkload[]),
     ])
-      .then(([ov, st, cur, od, coh]) => {
+      .then(([ov, st, cur, od, coh, wl]) => {
         setOverview(ov)
         setStageStats(st)
         setCuratorStats(cur)
         setOverdue(od)
         setCohortStats(coh)
+        setWorkload(wl)
       })
       .catch((e) => setError(apiErrorMessage(e)))
       .finally(() => setLoading(false))
-  }, [])
+  }, [user?.role])
 
   if (loading || stagesLoading) return <Loader />
   if (error || !overview) return <ErrorState message={error ?? 'Не удалось загрузить статистику'} />
@@ -58,6 +62,11 @@ export function StatisticsPage() {
         <button className={`chip ${subTab === 'extra' ? 'active' : ''}`} onClick={() => setSubTab('extra')}>
           Дополнительная
         </button>
+        {user?.role === 'ADMIN' && (
+          <button className={`chip ${subTab === 'workload' ? 'active' : ''}`} onClick={() => setSubTab('workload')}>
+            Нагрузка кураторов
+          </button>
+        )}
       </div>
 
       {subTab === 'main' && (
@@ -92,6 +101,13 @@ export function StatisticsPage() {
           ) : (
             <CohortFunnelTable cohorts={cohortStats} stages={stages} onOpenCohort={setOpenCohortId} />
           )}
+        </div>
+      )}
+
+      {subTab === 'workload' && (
+        <div>
+          <div className="font-display font-semibold text-sm mb-2.5">Нагрузка кураторов</div>
+          <CuratorWorkloadTable rows={workload} />
         </div>
       )}
 

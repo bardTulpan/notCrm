@@ -1,5 +1,5 @@
 import { client } from './client'
-import type { CohortStats, CuratorStats, OverdueStudent, StageStats, StatsOverview } from '../types'
+import type { CohortStats, CuratorStats, CuratorWorkload, OverdueStudent, StageStats, StatsOverview } from '../types'
 
 export const statisticsApi = {
   overview: () => client.get<StatsOverview>('/stats/overview').then((r) => r.data),
@@ -7,6 +7,8 @@ export const statisticsApi = {
   stages: () => client.get<StageStats[]>('/stats/stages').then((r) => r.data),
 
   curators: () => client.get<CuratorStats[]>('/stats/curators').then((r) => r.data),
+
+  curatorWorkload: () => client.get<CuratorWorkload[]>('/stats/curator-workload').then((r) => r.data),
 
   overdueStudents: () => client.get<OverdueStudent[]>('/stats/overdue-students').then((r) => r.data),
 
