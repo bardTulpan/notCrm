@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
 import { studentsApi } from '../api/students'
 import { useStages } from '../hooks/useStages'
+import { useCohorts } from '../hooks/useCohorts'
+import { csvDateStamp, downloadCsv } from '../utils/csv'
+import { formatDate } from '../utils/dates'
 import { useCurators } from '../hooks/useCurators'
 import { Loader } from '../components/Loader'
 import { ErrorState } from '../components/ErrorState'
@@ -39,6 +42,7 @@ function applyLocalReorder(
 export function StudentsPage() {
   const { stages, loading: stagesLoading, error: stagesError } = useStages()
   const { displayName } = useCurators()
+  const { cohorts } = useCohorts()
   const { push } = useToast()
 
   const [students, setStudents] = useState<StudentDto[]>([])
@@ -106,6 +110,28 @@ export function StudentsPage() {
       })
   }
 
+  function exportCsv() {
+    const stageName = (id: string) => stages.find((s) => s.id === id)?.name ?? ''
+    const cohortName = (id: string | null) => cohorts.find((c) => c.id === id)?.name ?? ''
+    const healthLabel: Record<StudentDto['health'], string> = { green: 'по плану', yellow: 'внимание', red: 'застрял', paused: 'на паузе' }
+    downloadCsv(
+      `ученики-${csvDateStamp()}.csv`,
+      ['Имя', 'Telegram', 'Этап', 'Куратор', 'Когорта', 'Дата старта', 'На этапе с', 'Дней на этапе', 'Статус', 'Постоплата, %'],
+      visible.map((s) => [
+        s.fullName,
+        s.telegramUsername,
+        stageName(s.currentStageId),
+        displayName(s.curatorId).name,
+        cohortName(s.cohortId),
+        formatDate(s.startedAt),
+        formatDate(s.stageEnteredAt),
+        s.daysOnStage,
+        healthLabel[s.health],
+        s.postpayPercent,
+      ]),
+    )
+  }
+
   const visible = selectedCuratorIds.size === 0 ? students : students.filter((s) => selectedCuratorIds.has(s.curatorId))
   const openStudent = students.find((s) => s.id === openStudentId) ?? null
 
@@ -123,6 +149,7 @@ export function StudentsPage() {
         onlyStuck={onlyStuck}
         onToggleStuck={() => setOnlyStuck((v) => !v)}
         onAddStudent={() => setAdding(true)}
+        onExport={exportCsv}
       />
       {visible.length === 0 ? (
         <EmptyState />
