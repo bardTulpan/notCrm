@@ -1,6 +1,7 @@
 import { forwardRef } from 'react'
 import { Avatar } from '../../components/Avatar'
 import { TimeBadge } from '../../components/TimeBadge'
+import { NormMeter } from '../../components/NormMeter'
 import type { StudentDto } from '../../types'
 
 export const StudentCard = forwardRef<
@@ -10,12 +11,14 @@ export const StudentCard = forwardRef<
     normDays: number | null
     curatorName: string
     curatorColor: string | null
+    showNormMeter?: boolean
     onClick: () => void
     onPointerDown: (e: React.PointerEvent) => void
     isDragSource?: boolean
   }
->(function StudentCard({ student, normDays, curatorName, curatorColor, onClick, onPointerDown, isDragSource }, ref) {
+>(function StudentCard({ student, normDays, curatorName, curatorColor, showNormMeter, onClick, onPointerDown, isDragSource }, ref) {
   const stuck = student.health === 'red'
+  const meterNorm = showNormMeter && !student.isPaused && normDays != null && normDays > 0 ? normDays : null
   return (
     <div
       ref={ref}
@@ -29,7 +32,11 @@ export const StudentCard = forwardRef<
         <span className="font-display font-semibold text-[13px]">{student.fullName}</span>
         <Avatar name={curatorName} color={curatorColor} />
       </div>
-      <TimeBadge daysOnStage={student.daysOnStage} normDays={normDays} isPaused={student.isPaused} />
+      {meterNorm != null ? (
+        <NormMeter daysOnStage={student.daysOnStage} normDays={meterNorm} />
+      ) : (
+        <TimeBadge daysOnStage={student.daysOnStage} normDays={normDays} isPaused={student.isPaused} />
+      )}
     </div>
   )
 })
