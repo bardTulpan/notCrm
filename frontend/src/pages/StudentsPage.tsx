@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { studentsApi } from '../api/students'
 import { useStages } from '../hooks/useStages'
 import { useCurators } from '../hooks/useCurators'
+import { useCohorts } from '../hooks/useCohorts'
+import { useStoredToggle } from '../hooks/useStoredToggle'
 import { Loader } from '../components/Loader'
 import { ErrorState } from '../components/ErrorState'
 import { EmptyState } from '../components/EmptyState'
@@ -39,7 +41,10 @@ function applyLocalReorder(
 export function StudentsPage() {
   const { stages, loading: stagesLoading, error: stagesError } = useStages()
   const { displayName } = useCurators()
+  const { cohorts } = useCohorts()
   const { push } = useToast()
+  const [groupByCohort, toggleGroupByCohort] = useStoredToggle('students.groupByCohort')
+  const [showNormMeter, toggleNormMeter] = useStoredToggle('students.showNormMeter')
 
   const [students, setStudents] = useState<StudentDto[]>([])
   const [loading, setLoading] = useState(true)
@@ -122,6 +127,10 @@ export function StudentsPage() {
         onToggleCurator={toggleCurator}
         onlyStuck={onlyStuck}
         onToggleStuck={() => setOnlyStuck((v) => !v)}
+        groupByCohort={groupByCohort}
+        onToggleGroupByCohort={toggleGroupByCohort}
+        showNormMeter={showNormMeter}
+        onToggleNormMeter={toggleNormMeter}
         onAddStudent={() => setAdding(true)}
       />
       {visible.length === 0 ? (
@@ -130,6 +139,9 @@ export function StudentsPage() {
         <KanbanBoard
           stages={stages}
           students={visible}
+          cohorts={cohorts}
+          groupByCohort={groupByCohort}
+          showNormMeter={showNormMeter}
           curatorName={displayName}
           onOpenStudent={setOpenStudentId}
           onReorder={reorderStudent}

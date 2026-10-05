@@ -1,13 +1,22 @@
-import { Fragment, useCallback, useEffect, useRef, useState } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { StudentCard } from './StudentCard'
 import { cardZone, compareCards } from './cardZone'
-import type { StageDto, StudentDto } from '../../types'
+import type { CohortDto, StageDto, StudentDto } from '../../types'
 
 const DRAG_THRESHOLD_PX = 6
+const ALL_LANE = 'all'
+const NO_COHORT_LANE = 'no-cohort'
 
 interface DropTarget {
   stageId: string
   beforeStudentId: string | null
+}
+
+interface Lane {
+  key: string
+  name: string
+  count: number
+  overdue: number
 }
 
 function sameTarget(a: DropTarget | null, b: DropTarget | null) {
@@ -19,23 +28,30 @@ function sameTarget(a: DropTarget | null, b: DropTarget | null) {
 export function KanbanBoard({
   stages,
   students,
+  cohorts,
+  groupByCohort,
+  showNormMeter,
   curatorName,
   onOpenStudent,
   onReorder,
 }: {
   stages: StageDto[]
   students: StudentDto[]
+  cohorts: CohortDto[]
+  groupByCohort: boolean
+  showNormMeter: boolean
   curatorName: (curatorId: string) => { name: string; color: string | null }
   onOpenStudent: (id: string) => void
   onReorder: (studentId: string, stageId: string, beforeStudentId: string | null) => void
 }) {
   const [dragStudentId, setDragStudentId] = useState<string | null>(null)
   const [dropTarget, setDropTarget] = useState<DropTarget | null>(null)
+  const [collapsedLanes, setCollapsedLanes] = useState<Set<string>>(new Set())
   const dropTargetRef = useRef<DropTarget | null>(null)
   const wasDragRef = useRef(false)
 
   const cardRefs = useRef(new Map<string, HTMLDivElement>())
-  const columnRefs = useRef(new Map<string, HTMLDivElement>())
+  const cellRefs = useRef(new Map<string, { stageId: string; lane: string; el: HTMLDivElement }>())
   const ghostRef = useRef<HTMLDivElement>(null)
 
   const pointerStateRef = useRef<{
@@ -48,6 +64,36 @@ export function KanbanBoard({
     dragging: boolean
   } | null>(null)
 
+  const knownCohortIds = useMemo(() => new Set(cohorts.map((c) => c.id)), [cohorts])
+
+  // Cohort follows the start date, so in lane mode a card can only move within its own cohort lane.
+  const laneOf = useCallback(
+    (s: StudentDto) => {
+      if (!groupByCohort) return ALL_LANE
+      return s.cohortId && knownCohortIds.has(s.cohortId) ? s.cohortId : NO_COHORT_LANE
+    },
+    [groupByCohort, knownCohortIds],
+  )
+
+  const lanes = useMemo<Lane[]>(() => {
+    if (!groupByCohort) return []
+    const stats = new Map<string, { count: number; overdue: number }>()
+    for (const s of students) {
+      const key = laneOf(s)
+      const st = stats.get(key) ?? { count: 0, overdue: 0 }
+      st.count++
+      if (s.health === 'red' && !s.isPaused) st.overdue++
+      stats.set(key, st)
+    }
+    const result: Lane[] = [...cohorts]
+      .sort((a, b) => a.startDate.localeCompare(b.startDate))
+      .filter((c) => stats.has(c.id))
+      .map((c) => ({ key: c.id, name: c.archivedAt ? `${c.name} (архив)` : c.name, ...stats.get(c.id)! }))
+    const none = stats.get(NO_COHORT_LANE)
+    if (none) result.push({ key: NO_COHORT_LANE, name: 'Без когорты', ...none })
+    return result
+  }, [groupByCohort, students, cohorts, laneOf])
+
   const studentsByStage = useCallback(
     (stageId: string) => students.filter((s) => s.currentStageId === stageId).sort(compareCards),
     [students],
@@ -55,20 +101,24 @@ export function KanbanBoard({
 
   const computeDropTarget = useCallback(
     (clientX: number, clientY: number, draggedStudent: StudentDto): DropTarget | null => {
+      const lane = laneOf(draggedStudent)
       let bestStageId: string | null = null
       let bestDist = Infinity
-      for (const [stageId, el] of columnRefs.current) {
-        const rect = el.getBoundingClientRect()
+      for (const cell of cellRefs.current.values()) {
+        if (cell.lane !== lane) continue
+        const rect = cell.el.getBoundingClientRect()
         const dist = clientX < rect.left ? rect.left - clientX : clientX > rect.right ? clientX - rect.right : 0
         if (dist < bestDist) {
           bestDist = dist
-          bestStageId = stageId
+          bestStageId = cell.stageId
         }
       }
       if (!bestStageId) return null
 
       const zone = cardZone(draggedStudent)
-      const zoneItems = studentsByStage(bestStageId).filter((s) => s.id !== draggedStudent.id && cardZone(s) === zone)
+      const zoneItems = studentsByStage(bestStageId).filter(
+        (s) => s.id !== draggedStudent.id && cardZone(s) === zone && laneOf(s) === lane,
+      )
 
       let beforeId: string | null = null
       for (const item of zoneItems) {
@@ -83,7 +133,7 @@ export function KanbanBoard({
       }
       return { stageId: bestStageId, beforeStudentId: beforeId }
     },
-    [studentsByStage],
+    [studentsByStage, laneOf],
   )
 
   const endDrag = useCallback((commit: boolean) => {
@@ -165,81 +215,150 @@ export function KanbanBoard({
     }
   }
 
+  function toggleLane(key: string) {
+    setCollapsedLanes((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
+
   const draggedStudent = dragStudentId ? students.find((s) => s.id === dragStudentId) : null
+  const draggedLane = draggedStudent ? laneOf(draggedStudent) : null
+
+  function renderStageHeader(stage: StageDto, idx: number, count: number) {
+    return (
+      <>
+        <div className="h-1 rounded-full bg-border mb-2.5 flex gap-0.5">
+          {stages.map((_, i) => (
+            <div key={i} className={`flex-1 rounded-full ${i <= idx ? 'bg-accent' : 'bg-border'}`} />
+          ))}
+        </div>
+        <div className="flex items-center justify-between mb-0.5">
+          <span className="font-display font-semibold text-[12.5px] leading-tight">
+            {idx + 1}. {stage.name}
+          </span>
+          <span className="font-mono text-[11px] text-ink-400 bg-surface border border-border px-1.5 rounded-full flex-shrink-0 ml-1.5">
+            {count}
+          </span>
+        </div>
+        <div className="font-mono text-[10.5px] text-ink-400 mb-2.5">
+          {stage.normDays != null ? `норма · ${stage.normDays} дн.` : 'финальный шаг'}
+        </div>
+      </>
+    )
+  }
+
+  function renderCell(stage: StageDto, items: StudentDto[], lane: string, className: string) {
+    const showPlaceholder = dragStudentId != null && dropTarget?.stageId === stage.id && draggedLane === lane
+    const cellKey = `${lane}|${stage.id}`
+    return (
+      <div
+        ref={(el) => {
+          if (el) cellRefs.current.set(cellKey, { stageId: stage.id, lane, el })
+          else cellRefs.current.delete(cellKey)
+        }}
+        className={`flex flex-col gap-2 rounded-lg p-0.5 ${className} ${showPlaceholder ? 'bg-accent-soft/40' : ''}`}
+      >
+        {items.map((s) => (
+          <Fragment key={s.id}>
+            {showPlaceholder && dropTarget?.beforeStudentId === s.id && (
+              <div className="rounded-lg border-2 border-dashed border-accent h-[52px]" />
+            )}
+            <StudentCard
+              student={s}
+              normDays={stage.normDays}
+              curatorName={curatorName(s.curatorId).name}
+              curatorColor={curatorName(s.curatorId).color}
+              showNormMeter={showNormMeter}
+              onClick={() => {
+                if (!wasDragRef.current) onOpenStudent(s.id)
+              }}
+              onPointerDown={(e) => handlePointerDown(s, e)}
+              isDragSource={s.id === dragStudentId}
+              ref={(el) => {
+                if (el) cardRefs.current.set(s.id, el)
+                else cardRefs.current.delete(s.id)
+              }}
+            />
+          </Fragment>
+        ))}
+        {showPlaceholder && dropTarget?.beforeStudentId === null && (
+          <div className="rounded-lg border-2 border-dashed border-accent h-[52px]" />
+        )}
+      </div>
+    )
+  }
+
+  const ghost = draggedStudent && (
+    <div
+      ref={ghostRef}
+      className="fixed top-0 left-0 pointer-events-none z-[200] card p-2.5 shadow-xl bg-white"
+      style={{ width: pointerStateRef.current?.width ?? 200 }}
+    >
+      <span className="font-display font-semibold text-[13px]">{draggedStudent.fullName}</span>
+    </div>
+  )
+
+  if (!groupByCohort) {
+    return (
+      <div className="flex gap-3.5 overflow-x-auto pb-2">
+        {stages.map((stage, idx) => {
+          const items = studentsByStage(stage.id)
+          return (
+            <div key={stage.id} className="flex-none w-[220px]">
+              {renderStageHeader(stage, idx, items.length)}
+              {renderCell(stage, items, ALL_LANE, 'min-h-[60px] max-h-[62vh] overflow-y-auto')}
+            </div>
+          )
+        })}
+        {ghost}
+      </div>
+    )
+  }
 
   return (
-    <div className="flex gap-3.5 overflow-x-auto pb-2">
-      {stages.map((stage, idx) => {
-        const items = studentsByStage(stage.id)
-        const showPlaceholderInThisColumn = dragStudentId && dropTarget?.stageId === stage.id
-
-        return (
-          <div key={stage.id} className="flex-none w-[220px]">
-            <div className="h-1 rounded-full bg-border mb-2.5 flex gap-0.5">
-              {stages.map((_, i) => (
-                <div key={i} className={`flex-1 rounded-full ${i <= idx ? 'bg-accent' : 'bg-border'}`} />
-              ))}
-            </div>
-            <div className="flex items-center justify-between mb-0.5">
-              <span className="font-display font-semibold text-[12.5px] leading-tight">
-                {idx + 1}. {stage.name}
-              </span>
-              <span className="font-mono text-[11px] text-ink-400 bg-surface border border-border px-1.5 rounded-full flex-shrink-0 ml-1.5">
-                {items.length}
-              </span>
-            </div>
-            <div className="font-mono text-[10.5px] text-ink-400 mb-2.5">
-              {stage.normDays != null ? `норма · ${stage.normDays} дн.` : 'финальный шаг'}
-            </div>
-            <div
-              ref={(el) => {
-                if (el) columnRefs.current.set(stage.id, el)
-                else columnRefs.current.delete(stage.id)
-              }}
-              className={`min-h-[60px] max-h-[62vh] overflow-y-auto flex flex-col gap-2 rounded-lg p-0.5 ${
-                showPlaceholderInThisColumn ? 'bg-accent-soft/40' : ''
-              }`}
-            >
-              {items.map((s) => (
-                <Fragment key={s.id}>
-                  {showPlaceholderInThisColumn && dropTarget?.beforeStudentId === s.id && (
-                    <div className="rounded-lg border-2 border-dashed border-accent h-[52px]" />
-                  )}
-                  <StudentCard
-                    key={s.id}
-                    student={s}
-                    normDays={stage.normDays}
-                    curatorName={curatorName(s.curatorId).name}
-                    curatorColor={curatorName(s.curatorId).color}
-                    onClick={() => {
-                      if (!wasDragRef.current) onOpenStudent(s.id)
-                    }}
-                    onPointerDown={(e) => handlePointerDown(s, e)}
-                    isDragSource={s.id === dragStudentId}
-                    ref={(el) => {
-                      if (el) cardRefs.current.set(s.id, el)
-                      else cardRefs.current.delete(s.id)
-                    }}
-                  />
-                </Fragment>
-              ))}
-              {showPlaceholderInThisColumn && dropTarget?.beforeStudentId === null && (
-                <div className="rounded-lg border-2 border-dashed border-accent h-[52px]" />
-              )}
-            </div>
-          </div>
-        )
-      })}
-
-      {draggedStudent && (
-        <div
-          ref={ghostRef}
-          className="fixed top-0 left-0 pointer-events-none z-[200] card p-2.5 shadow-xl bg-white"
-          style={{ width: pointerStateRef.current?.width ?? 200 }}
-        >
-          <span className="font-display font-semibold text-[13px]">{draggedStudent.fullName}</span>
-        </div>
-      )}
+    <div className="overflow-x-auto pb-2">
+      <div className="grid gap-x-3.5 w-max" style={{ gridTemplateColumns: `repeat(${stages.length}, 220px)` }}>
+        {stages.map((stage, idx) => (
+          <div key={stage.id}>{renderStageHeader(stage, idx, studentsByStage(stage.id).length)}</div>
+        ))}
+        {lanes.map((lane, i) => {
+          const collapsed = collapsedLanes.has(lane.key)
+          return (
+            <Fragment key={lane.key}>
+              <div className={`col-span-full ${i > 0 ? 'border-t border-border mt-2 pt-2' : ''}`}>
+                <button
+                  type="button"
+                  className="sticky left-0 flex items-center gap-2 py-1 pr-2 bg-transparent border-0 font-display font-semibold text-[13px] text-ink-900 cursor-pointer"
+                  onClick={() => toggleLane(lane.key)}
+                  aria-expanded={!collapsed}
+                >
+                  <span className="text-[10px] text-ink-400 w-2.5">{collapsed ? '▸' : '▾'}</span>
+                  {lane.name}
+                  <span className="font-mono text-[11px] font-normal text-ink-400">
+                    {lane.count} уч.
+                    {lane.overdue > 0 && <span className="text-warn font-semibold"> · {lane.overdue} просроч.</span>}
+                  </span>
+                </button>
+              </div>
+              {!collapsed &&
+                stages.map((stage) => (
+                  <div key={stage.id} className="pb-1.5 flex flex-col">
+                    {renderCell(
+                      stage,
+                      studentsByStage(stage.id).filter((s) => laneOf(s) === lane.key),
+                      lane.key,
+                      'flex-1 min-h-[44px]',
+                    )}
+                  </div>
+                ))}
+            </Fragment>
+          )
+        })}
+      </div>
+      {ghost}
     </div>
   )
 }
