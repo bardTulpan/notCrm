@@ -133,9 +133,11 @@ class CrmApplicationIntegrationTest extends AbstractIntegrationTest {
                 .andReturn();
         UUID leadId = UUID.fromString(objectMapper.readTree(result.getResponse().getContentAsString()).get("id").asText());
 
+        // Other test classes share the database and may have given this curator leads of their own,
+        // so check that the other curator's lead is absent rather than that the list is empty.
         mockMvc.perform(get("/api/v1/leads").header("Authorization", "Bearer " + curatorToken))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(0));
+                .andExpect(jsonPath("$[?(@.id == '" + leadId + "')]").isEmpty());
 
         mockMvc.perform(get("/api/v1/leads/" + leadId).header("Authorization", "Bearer " + curatorToken))
                 .andExpect(status().isNotFound());
