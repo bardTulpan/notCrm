@@ -84,13 +84,18 @@ notes:[{id,text,position}]}`. `postpone-ping` 409 если дата раньше
 `GET /students?stageId&curatorId&cohortId&onlyOverdue&search`, `POST/GET/PATCH /students/{id}`,
 `POST /{id}/move-stage {stageId}`, `/pause`, `/resume`, `/assign-curator {curatorId}` (ADMIN only),
 `GET /{id}/history` → `{stages:[{stageId,enteredAt,exitedAt,changedById}], curators:[{fromCuratorId,
-toCuratorId,changedAt}]}`, `GET/POST /{id}/comments`, `PATCH/DELETE /{id}/comments/{commentId}`.
-`StudentDto {id, fullName, sourceLeadId, currentStageId, curatorId, cohortId, stageEnteredAt, startedAt,
-isPaused, pausedAt, postpayPercent, createdById, health: 'green'|'yellow'|'red'|'paused', notes:[...]}`.
+toCuratorId,changedAt}]}`, `GET/POST /{id}/comments`, `PATCH/DELETE /{id}/comments/{commentId}`,
+`POST /{id}/reorder {stageId, beforeStudentId}` (перетаскивание на Kanban), `DELETE /{id}` (мягкое удаление),
+`GET /{id}/avatar?v=<avatarVersion>` (JPEG-фото из Telegram; 404, если фото нет) и
+`POST /{id}/avatar/refresh` (перепроверить фото сейчас, не чаще раза в минуту, иначе 429; возвращает `StudentDto`).
+`StudentDto {id, fullName, telegramUsername, sourceLeadId, currentStageId, curatorId, cohortId, stageEnteredAt,
+startedAt, isPaused, pausedAt, postpayPercent, createdById, health: 'green'|'yellow'|'red'|'paused', daysOnStage,
+stagePosition, notes:[...], avatarVersion}` — `avatarVersion` меняется вместе с фото, `null` = фото нет (показывать
+инициалы). Фото грузится через axios как blob (`hooks/useAvatarUrl.ts`), а не `<img src>`: токен только в заголовке.
 `CommentDto {id, studentId, authorId, text, createdAt, updatedAt}` — CURATOR редактирует/удаляет
 только свои (403 иначе), curatorId/cohortId в PATCH — 403 если меняет не ADMIN.
-Kanban drag&drop правило: карточку не переносить оптимистично — ждать 200 от move-stage, при ошибке
-`GET /students` заново.
+Kanban drag&drop: перенос применяется оптимистично (`POST /{id}/reorder`), с тостом «Имя → Этап / Отменить»
+на 5 сек; при ошибке — откат и `GET /students` заново.
 
 ### Statistics (CURATOR получает то же с автоматически урезанными данными от сервера)
 - `GET /stats/overview` → `StatsOverview {total, green, yellow, red, paused}`
