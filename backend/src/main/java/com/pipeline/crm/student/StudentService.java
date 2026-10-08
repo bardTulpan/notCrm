@@ -1,6 +1,8 @@
 package com.pipeline.crm.student;
 
 import com.pipeline.crm.audit.AuditService;
+import com.pipeline.crm.avatar.AvatarVersion;
+import com.pipeline.crm.avatar.StudentAvatarRepository;
 import com.pipeline.crm.cohort.CohortService;
 import com.pipeline.crm.user.CuratorGuard;
 import com.pipeline.crm.common.exception.ConflictException;
@@ -10,6 +12,7 @@ import com.pipeline.crm.pipeline.PipelineStage;
 import com.pipeline.crm.pipeline.PipelineStageRepository;
 import com.pipeline.crm.security.CurrentUser;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -18,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Function;
 
@@ -33,6 +37,8 @@ public class StudentService {
     private final AuditService auditService;
     private final CohortService cohortService;
     private final CuratorGuard curatorGuard;
+    private final StudentAvatarRepository avatarRepository;
+    private final ApplicationEventPublisher events;
 
     public List<StudentDto> list(UUID stageId, UUID curatorId, UUID cohortId, boolean onlyOverdue, String search, CurrentUser user) {
         Specification<Student> spec = (root, query, cb) -> {
@@ -58,12 +64,14 @@ public class StudentService {
             spec = spec.and((root, query, cb) -> cb.equal(root.get("curatorId"), curatorId));
         }
 
-        List<Student> students = studentRepository.findAll(spec, Sort.by(Sort.Order.asc("fullName")));
+        List<Student> students = studentRepository.findAll(spec, Sort.by(Sort.Order.asc("fullName")))
+                .stream().filter(s -> !onlyOverdue || isOverdue(s)).toList();
+        Map<UUID, String> avatarVersions = avatarVersions(students.stream().map(Student::getId).toList());
 
         return students.stream()
-                .filter(s -> !onlyOverdue || isOverdue(s))
-                .map(s -> enriched(s, s.getNotes().stream()
-                        .map(n -> new StudentDto.NoteDto(n.getId(), n.getText(), n.getPosition())).toList()))
+                .map(s -> withHealth(s, s.getNotes().stream()
+                        .map(n -> new StudentDto.NoteDto(n.getId(), n.getText(), n.getPosition())).toList(),
+                        avatarVersions.get(s.getId())))
                 .toList();
     }
 
@@ -107,6 +115,7 @@ public class StudentService {
         history.setChangedById(user.id());
         stageHistoryRepository.save(history);
 
+        if (student.getTelegramUsername() != null) events.publishEvent(new StudentTelegramChanged(student.getId()));
         auditService.log(user.id(), "student", student.getId(), "create", null,
                 Map.of("fullName", student.getFullName(), "stageId", stage.getId().toString(),
                         "curatorId", curatorId.toString()));
@@ -117,7 +126,13 @@ public class StudentService {
     public StudentDto update(UUID id, UpdateStudentRequest request, CurrentUser user) {
         Student student = requireFor(id, user);
         if (request.fullName() != null) student.setFullName(request.fullName());
-        if (request.telegramUsername() != null) student.setTelegramUsername(blankToNull(request.telegramUsername()));
+        if (request.telegramUsername() != null) {
+            String before = student.getTelegramUsername();
+            student.setTelegramUsername(blankToNull(request.telegramUsername()));
+            if (!Objects.equals(before, student.getTelegramUsername())) {
+                events.publishEvent(new StudentTelegramChanged(student.getId()));
+            }
+        }
         if (request.postpayPercent() != null) student.setPostpayPercent(request.postpayPercent());
         if (request.startedAt() != null) {
             student.setStartedAt(request.startedAt());
@@ -160,6 +175,7 @@ public class StudentService {
         Student student = requireFor(id, user);
         student.setDeletedAt(Instant.now());
         studentRepository.save(student);
+        avatarRepository.deleteById(id);
         auditService.log(user.id(), "student", id, "delete", null, Map.of("fullName", student.getFullName()));
     }
 
@@ -405,6 +421,17 @@ public class StudentService {
         return value == null || value.isBlank() ? null : value.trim();
     }
 
+    /** The student if this user may see them (another curator's student is a 404, like everywhere else). */
+    public Student requireAccessible(UUID id, CurrentUser user) {
+        return requireFor(id, user);
+    }
+
+    private Map<UUID, String> avatarVersions(List<UUID> ids) {
+        if (ids.isEmpty()) return Map.of();
+        return avatarRepository.findVersions(ids).stream()
+                .collect(java.util.stream.Collectors.toMap(AvatarVersion::studentId, AvatarVersion::imageHash));
+    }
+
     private Student requireFor(UUID id, CurrentUser user) {
         Student student = studentRepository.findById(id)
                 .filter(s -> s.getDeletedAt() == null)
@@ -421,11 +448,7 @@ public class StudentService {
         return HealthCalculator.isOverdue(student, norm);
     }
 
-    private StudentDto enriched(Student student, List<StudentDto.NoteDto> notes) {
-        return withHealth(student, notes);
-    }
-
-    private StudentDto withHealth(Student student, List<StudentDto.NoteDto> notes) {
+    private StudentDto withHealth(Student student, List<StudentDto.NoteDto> notes, String avatarVersion) {
         PipelineStage stage = stageRepository.findById(student.getCurrentStageId()).orElse(null);
         Integer norm = stage != null ? stage.getNormDays() : null;
         String health = HealthCalculator.health(student, norm);
@@ -434,14 +457,14 @@ public class StudentService {
                 student.getCurrentStageId(), student.getCuratorId(), student.getCohortId(),
                 student.getStageEnteredAt(), student.getStartedAt(), student.isPaused(),
                 student.getPausedAt(), student.getPostpayPercent(), student.getCreatedById(),
-                health, HealthCalculator.daysOnStage(student), student.getStagePosition(), notes);
+                health, HealthCalculator.daysOnStage(student), student.getStagePosition(), notes, avatarVersion);
     }
 
     private StudentDto toFullDto(Student student) {
         List<StudentDto.NoteDto> notes = student.getNotes().stream()
                 .map(n -> new StudentDto.NoteDto(n.getId(), n.getText(), n.getPosition()))
                 .toList();
-        return withHealth(student, notes);
+        return withHealth(student, notes, avatarVersions(List.of(student.getId())).get(student.getId()));
     }
 
     private CommentDto toCommentDto(StudentComment comment) {

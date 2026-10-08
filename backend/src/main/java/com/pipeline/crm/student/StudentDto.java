@@ -21,7 +21,9 @@ public record StudentDto(
         String health,
         long daysOnStage,
         int stagePosition,
-        List<NoteDto> notes
+        List<NoteDto> notes,
+        /* Changes whenever the Telegram photo changes; null = no photo (show initials). */
+        String avatarVersion
 ) {
     public record NoteDto(UUID id, String text, Integer position) {
     }

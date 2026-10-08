@@ -1,5 +1,6 @@
 import { forwardRef } from 'react'
 import { Avatar } from '../../components/Avatar'
+import { StudentAvatar } from '../../components/StudentAvatar'
 import { TimeBadge } from '../../components/TimeBadge'
 import { NormMeter } from '../../components/NormMeter'
 import type { StudentDto } from '../../types'
@@ -28,15 +29,20 @@ export const StudentCard = forwardRef<
       onPointerDown={onPointerDown}
       onClick={onClick}
     >
-      <div className="flex items-center justify-between gap-1.5 mb-1.5">
-        <span className="font-display font-semibold text-[13px]">{student.fullName}</span>
-        <Avatar name={curatorName} color={curatorColor} />
+      <div className="flex items-center gap-2.5">
+        <StudentAvatar student={student} size={30} />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-1.5 mb-1.5">
+            <span className="font-display font-semibold text-[13px] min-w-0 break-words">{student.fullName}</span>
+            <Avatar name={curatorName} color={curatorColor} />
+          </div>
+          {meterNorm != null ? (
+            <NormMeter daysOnStage={student.daysOnStage} normDays={meterNorm} />
+          ) : (
+            <TimeBadge daysOnStage={student.daysOnStage} normDays={normDays} isPaused={student.isPaused} />
+          )}
+        </div>
       </div>
-      {meterNorm != null ? (
-        <NormMeter daysOnStage={student.daysOnStage} normDays={meterNorm} />
-      ) : (
-        <TimeBadge daysOnStage={student.daysOnStage} normDays={normDays} isPaused={student.isPaused} />
-      )}
     </div>
   )
 })

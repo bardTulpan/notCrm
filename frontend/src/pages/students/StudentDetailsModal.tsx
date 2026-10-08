@@ -4,6 +4,7 @@ import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { NotesList } from '../../components/NotesList'
 import { TelegramLink } from '../../components/TelegramLink'
 import { Avatar } from '../../components/Avatar'
+import { StudentAvatar } from '../../components/StudentAvatar'
 import { useAuth } from '../../auth/useAuth'
 import { useCurators } from '../../hooks/useCurators'
 import { useCohorts } from '../../hooks/useCohorts'
@@ -50,6 +51,7 @@ export function StudentDetailsModal({
   const canDelete = isAdmin || !!user?.canDeleteStudents
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [refreshingPhoto, setRefreshingPhoto] = useState(false)
   const [startedAt, setStartedAt] = useState(toDateInputValue(student.startedAt))
 
   const [editing, setEditing] = useState(false)
@@ -70,6 +72,20 @@ export function StudentDetailsModal({
       push('error', apiErrorMessage(err))
     } finally {
       setBusy(false)
+    }
+  }
+
+  async function refreshPhoto() {
+    setRefreshingPhoto(true)
+    try {
+      const updated = await studentsApi.refreshAvatar(student.id)
+      if (updated.avatarVersion) push('success', 'Фото обновлено')
+      else push('error', 'В Telegram фото не найдено или скрыто')
+      onChanged()
+    } catch (err) {
+      push('error', apiErrorMessage(err))
+    } finally {
+      setRefreshingPhoto(false)
     }
   }
 
@@ -172,6 +188,22 @@ export function StudentDetailsModal({
 
   return (
     <Modal
+      leading={
+        <div className="relative flex-shrink-0">
+          <StudentAvatar student={student} size={64} />
+          {student.telegramUsername && !editing && (
+            <button
+              className="absolute -right-1 -bottom-1 w-6 h-6 rounded-full bg-surface border border-border text-ink-600 hover:text-accent text-[13px] leading-none flex items-center justify-center cursor-pointer disabled:opacity-60"
+              onClick={refreshPhoto}
+              disabled={refreshingPhoto}
+              title="Обновить фото из Telegram"
+              aria-label="Обновить фото из Telegram"
+            >
+              <span className={refreshingPhoto ? 'inline-block animate-spin' : ''}>↻</span>
+            </button>
+          )}
+        </div>
+      }
       title={
         editing ? (
           <input

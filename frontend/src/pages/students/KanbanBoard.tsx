@@ -1,5 +1,6 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { StudentCard } from './StudentCard'
+import { StudentAvatar } from '../../components/StudentAvatar'
 import { cardZone, compareCards } from './cardZone'
 import type { CohortDto, StageDto, StudentDto } from '../../types'
 
@@ -297,7 +298,10 @@ export function KanbanBoard({
       className="fixed top-0 left-0 pointer-events-none z-[200] card p-2.5 shadow-xl bg-white"
       style={{ width: pointerStateRef.current?.width ?? 200 }}
     >
-      <span className="font-display font-semibold text-[13px]">{draggedStudent.fullName}</span>
+      <div className="flex items-center gap-2.5">
+        <StudentAvatar student={draggedStudent} size={30} />
+        <span className="font-display font-semibold text-[13px]">{draggedStudent.fullName}</span>
+      </div>
     </div>
   )
 

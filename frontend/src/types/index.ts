@@ -162,6 +162,8 @@ export interface StudentDto {
   daysOnStage: number
   stagePosition: number
   notes: StudentNoteDto[]
+  /** Changes when the Telegram photo changes; null = no photo (initials). */
+  avatarVersion: string | null
 }
 
 export interface CreateStudentRequest {

@@ -11,3 +11,7 @@ app:
     cookie-secure: false
   cors:
     allowed-origin: http://localhost:5173
+  # No requests to Telegram from tests; AvatarIntegrationTest turns this on against a local stub.
+  avatars:
+    enabled: false
+    refresh-cron: "-"

@@ -28,3 +28,6 @@ app:
     cookie-secure: ${JWT_COOKIE_SECURE:false}
   cors:
     allowed-origin: ${FRONTEND_ORIGIN:http://localhost:5173}
+  # Students' Telegram photos (see avatar.AvatarProperties for all knobs and defaults).
+  avatars:
+    enabled: ${AVATARS_ENABLED:true}
