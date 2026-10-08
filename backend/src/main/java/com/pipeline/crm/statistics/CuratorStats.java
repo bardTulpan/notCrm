@@ -6,7 +6,8 @@ public record CuratorStats(
         UUID curatorId,
         String name,
         String avatarColor,
-        long count,
+        long active,
+        long paused,
         long stuck,
         int avgPct
 ) {

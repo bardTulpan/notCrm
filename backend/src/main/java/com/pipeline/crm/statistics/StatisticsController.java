@@ -17,19 +17,21 @@ public class StatisticsController {
     private final StatisticsService statisticsService;
     private final SecurityUtils securityUtils;
 
+    // curatorIds narrows an admin's view to the chosen curators; it is ignored for curators,
+    // who only ever see their own students.
     @GetMapping("/overview")
-    public StatsOverview overview() {
-        return statisticsService.overview(actor());
+    public StatsOverview overview(@RequestParam(required = false) List<UUID> curatorIds) {
+        return statisticsService.overview(actor(), curatorIds);
     }
 
     @GetMapping("/stages")
-    public List<StageStats> stages() {
-        return statisticsService.stages(actor());
+    public List<StageStats> stages(@RequestParam(required = false) List<UUID> curatorIds) {
+        return statisticsService.stages(actor(), curatorIds);
     }
 
     @GetMapping("/curators")
-    public List<CuratorStats> curators() {
-        return statisticsService.curators(actor());
+    public List<CuratorStats> curators(@RequestParam(required = false) List<UUID> curatorIds) {
+        return statisticsService.curators(actor(), curatorIds);
     }
 
     @GetMapping("/curator-workload")
@@ -39,8 +41,8 @@ public class StatisticsController {
     }
 
     @GetMapping("/overdue-students")
-    public List<OverdueStudent> overdueStudents() {
-        return statisticsService.overdueStudents(actor());
+    public List<OverdueStudent> overdueStudents(@RequestParam(required = false) List<UUID> curatorIds) {
+        return statisticsService.overdueStudents(actor(), curatorIds);
     }
 
     @GetMapping("/cohorts")

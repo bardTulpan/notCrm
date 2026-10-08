@@ -213,7 +213,9 @@ export interface StageStats {
   stageId: string
   name: string
   normDays: number | null
-  onStage: number
+  /** Studying now; paused students (usually dropped out) are counted apart in `paused`. */
+  active: number
+  paused: number
   stuck: number
 }
 
@@ -221,7 +223,8 @@ export interface CuratorStats {
   curatorId: string
   name: string
   avatarColor: string | null
-  count: number
+  active: number
+  paused: number
   stuck: number
   avgPct: number
 }
