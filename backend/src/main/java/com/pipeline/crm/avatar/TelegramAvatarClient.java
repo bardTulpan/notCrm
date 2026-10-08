@@ -19,6 +19,9 @@ import java.util.regex.Pattern;
  * Reads a profile photo from the public page {@code t.me/<handle>}: the page carries the photo as og:image when the
  * handle is public and the photo is visible to everyone. Unofficial — if Telegram changes the page, results turn into
  * {@link Failed}/{@link NoPhoto} and the CRM falls back to initials; nothing else depends on it.
+ * <p>
+ * The page sometimes comes back without the photo even though the profile has one (seen in production: 15 of 46 on a
+ * first pass vs ~33 really), so a "no photo" answer is asked again before it counts.
  */
 @Component
 @Slf4j
@@ -55,6 +58,14 @@ public class TelegramAvatarClient {
     }
 
     public Result fetch(String handle) {
+        Result result = fetchOnce(handle);
+        for (int attempt = 1; attempt < props.noPhotoAttempts() && result instanceof NoPhoto; attempt++) {
+            result = fetchOnce(handle);
+        }
+        return result;
+    }
+
+    private Result fetchOnce(String handle) {
         try {
             awaitTurn();
             HttpResponse<InputStream> page = get(URI.create(props.telegramBaseUrl() + "/" + handle));

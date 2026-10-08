@@ -28,6 +28,7 @@ final class TelegramStub {
     private final HttpServer server;
     private final Map<String, Behaviour> handles = new ConcurrentHashMap<>();
     private final Map<String, AtomicInteger> pageHits = new ConcurrentHashMap<>();
+    private final Map<String, AtomicInteger> photoDrops = new ConcurrentHashMap<>();
 
     TelegramStub() {
         try {
@@ -55,6 +56,11 @@ final class TelegramStub {
         handles.put(handle, new Behaviour(mode, Color.GRAY));
     }
 
+    /** Like the real t.me now and then: the next {@code count} pages omit the photo although the profile has one. */
+    void dropPhotoFromNextPages(String handle, int count) {
+        photoDrops.put(handle, new AtomicInteger(count));
+    }
+
     int pageHits(String handle) {
         AtomicInteger hits = pageHits.get(handle);
         return hits == null ? 0 : hits.get();
@@ -71,6 +77,11 @@ final class TelegramStub {
         String handle = path.substring(1);
         pageHits.computeIfAbsent(handle, h -> new AtomicInteger()).incrementAndGet();
         Behaviour b = handles.getOrDefault(handle, new Behaviour(Mode.NO_PHOTO, Color.GRAY));
+        AtomicInteger drops = photoDrops.get(handle);
+        if (b.mode() == Mode.PHOTO && drops != null && drops.getAndDecrement() > 0) {
+            respond(ex, 200, "text/html", page("https://telegram.org/img/t_logo.png", false));
+            return;
+        }
         switch (b.mode()) {
             case PHOTO -> respond(ex, 200, "text/html", page(baseUrl() + "/img/" + handle + ".jpg", true));
             case FOREIGN_HOST -> respond(ex, 200, "text/html", page("https://example.com/" + handle + ".jpg", true));

@@ -20,7 +20,10 @@ public record AvatarProperties(
         /* Random extra delay per student, so the whole roster doesn't come due on the same night. */
         @DefaultValue("3d") Duration refreshJitter,
         @DefaultValue("1d") Duration retryAfterFailure,
-        @DefaultValue("2s") Duration requestInterval,
+        /* Telegram intermittently serves the page without the photo, more often under a burst of requests. */
+        @DefaultValue("5s") Duration requestInterval,
+        /* So "no photo" is only believed after this many answers in a row (a photo in any of them wins). */
+        @DefaultValue("3") int noPhotoAttempts,
         @DefaultValue("1m") Duration manualRefreshCooldown,
         @DefaultValue("1m") Duration startupDelay,
         @DefaultValue("200") int batchLimit,
