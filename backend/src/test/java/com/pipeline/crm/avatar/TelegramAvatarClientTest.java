@@ -18,7 +18,7 @@ class TelegramAvatarClientTest {
 
     private static TelegramAvatarClient client(Duration requestInterval) {
         return new TelegramAvatarClient(new AvatarProperties(true, STUB.baseUrl(), List.of("127.0.0.1"),
-                Duration.ofDays(14), Duration.ofDays(3), Duration.ofDays(1), requestInterval,
+                Duration.ofDays(14), Duration.ofDays(3), Duration.ofDays(1), requestInterval, 3,
                 Duration.ofMinutes(1), Duration.ofMinutes(1), 200, 128, ""));
     }
 
@@ -41,9 +41,25 @@ class TelegramAvatarClientTest {
     }
 
     @Test
-    void pageWithoutAPublicPhotoMeansNoPhoto() {
+    void noPhotoIsOnlyBelievedAfterThreeAnswersInARow() {
         STUB.set("client_hidden", TelegramStub.Mode.NO_PHOTO);
         assertThat(client(Duration.ZERO).fetch("client_hidden")).isInstanceOf(TelegramAvatarClient.NoPhoto.class);
+        assertThat(STUB.pageHits("client_hidden")).isEqualTo(3);
+    }
+
+    @Test
+    void photoMissingFromOneAnswerIsStillFound() {
+        STUB.photo("client_flaky", Color.RED);
+        STUB.dropPhotoFromNextPages("client_flaky", 2);
+        assertThat(client(Duration.ZERO).fetch("client_flaky")).isInstanceOf(TelegramAvatarClient.Photo.class);
+        assertThat(STUB.pageHits("client_flaky")).isEqualTo(3);
+    }
+
+    @Test
+    void photoIsAskedForOnlyOnceWhenTheFirstAnswerHasIt() {
+        STUB.photo("client_once", Color.RED);
+        client(Duration.ZERO).fetch("client_once");
+        assertThat(STUB.pageHits("client_once")).isEqualTo(1);
     }
 
     @Test
