@@ -41,6 +41,13 @@ export const studentsApi = {
   assignCurator: (id: string, curatorId: string) =>
     client.post<StudentDto>(`/students/${id}/assign-curator`, { curatorId }).then((r) => r.data),
 
+  avatar: (id: string, version: string) =>
+    client
+      .get<Blob>(`/students/${id}/avatar`, { params: { v: version }, responseType: 'blob' })
+      .then((r) => r.data),
+
+  refreshAvatar: (id: string) => client.post<StudentDto>(`/students/${id}/avatar/refresh`).then((r) => r.data),
+
   history: (id: string) => client.get<StudentHistoryDto>(`/students/${id}/history`).then((r) => r.data),
 
   comments: (id: string) => client.get<CommentDto[]>(`/students/${id}/comments`).then((r) => r.data),

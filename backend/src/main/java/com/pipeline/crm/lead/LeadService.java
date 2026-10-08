@@ -9,6 +9,7 @@ import com.pipeline.crm.pipeline.PipelineStageAccessor;
 import com.pipeline.crm.security.CurrentUser;
 import com.pipeline.crm.student.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -29,6 +30,7 @@ public class LeadService {
     private final AuditService auditService;
     private final CohortService cohortService;
     private final CuratorGuard curatorGuard;
+    private final ApplicationEventPublisher events;
 
     public List<LeadDto> list(LeadStatus status, String search, UUID assignedCuratorId,
                                Instant pingFrom, Instant pingTo, CurrentUser user) {
@@ -165,6 +167,8 @@ public class LeadService {
         history.setEnteredAt(student.getStageEnteredAt());
         history.setChangedById(user.id());
         stageHistoryRepository.save(history);
+
+        if (student.getTelegramUsername() != null) events.publishEvent(new StudentTelegramChanged(student.getId()));
 
         lead.setStatus(LeadStatus.CONVERTED);
         lead.setConvertedStudentId(student.getId());

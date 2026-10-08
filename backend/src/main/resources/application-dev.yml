@@ -11,3 +11,8 @@ logging:
   level:
     org.hibernate.SQL: debug
     org.hibernate.type.descriptor.sql.BasicBinder: trace
+
+app:
+  avatars:
+    # Real photos for demo students; kept OUTSIDE the repo (the repo is public). Relative to backend/.
+    dev-seed-dir: ${DEV_AVATARS_DIR:../../notCrm-local-data/student-avatars}
