@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -31,8 +32,8 @@ public class StatisticsService {
     private final CohortRepository cohortRepository;
     private final UserRepository userRepository;
 
-    public StatsOverview overview(CurrentUser user) {
-        List<Student> students = visibleStudents(user);
+    public StatsOverview overview(CurrentUser user, List<UUID> curatorIds) {
+        List<Student> students = visibleStudents(user, curatorIds);
         long green = 0, yellow = 0, red = 0, paused = 0;
         for (Student s : students) {
             String h = health(s);
@@ -46,27 +47,32 @@ public class StatisticsService {
         return new StatsOverview(students.size(), green, yellow, red, paused);
     }
 
-    public List<StageStats> stages(CurrentUser user) {
-        List<Student> students = visibleStudents(user);
+    public List<StageStats> stages(CurrentUser user, List<UUID> curatorIds) {
+        List<Student> students = visibleStudents(user, curatorIds);
         List<PipelineStage> stages = stageRepository.findAllActiveOrdered();
         List<StageStats> result = new ArrayList<>();
         for (PipelineStage stage : stages) {
             List<Student> onStage = students.stream()
                     .filter(s -> s.getCurrentStageId().equals(stage.getId()))
                     .toList();
+            long paused = onStage.stream().filter(Student::isPaused).count();
             long stuck = onStage.stream().filter(s -> "red".equals(health(s))).count();
-            result.add(new StageStats(stage.getId(), stage.getName(), stage.getNormDays(), onStage.size(), stuck));
+            result.add(new StageStats(stage.getId(), stage.getName(), stage.getNormDays(),
+                    onStage.size() - paused, paused, stuck));
         }
         return result;
     }
 
-    public List<CuratorStats> curators(CurrentUser user) {
+    public List<CuratorStats> curators(CurrentUser user, List<UUID> curatorIds) {
         if (!user.isAdmin()) {
             return List.of(ownCuratorStats(user));
         }
+        Set<UUID> only = curatorIds == null ? Set.of() : Set.copyOf(curatorIds);
         List<CuratorStats> result = new ArrayList<>();
         for (User curator : userRepository.findAllActive().stream()
-                .filter(u -> u.getRole() == com.pipeline.crm.user.Role.CURATOR).toList()) {
+                .filter(u -> u.getRole() == com.pipeline.crm.user.Role.CURATOR)
+                .filter(u -> only.isEmpty() || only.contains(u.getId()))
+                .toList()) {
             result.add(curatorStats(curator));
         }
         return result;
@@ -103,8 +109,8 @@ public class StatisticsService {
         return result;
     }
 
-    public List<OverdueStudent> overdueStudents(CurrentUser user) {
-        List<Student> students = visibleStudents(user).stream()
+    public List<OverdueStudent> overdueStudents(CurrentUser user, List<UUID> curatorIds) {
+        List<Student> students = visibleStudents(user, curatorIds).stream()
                 .filter(this::isOverdue)
                 .toList();
         List<OverdueStudent> result = new ArrayList<>();
@@ -204,6 +210,15 @@ public class StatisticsService {
         return studentRepository.findByCuratorId(user.id()).stream().filter(s -> s.getDeletedAt() == null).toList();
     }
 
+    private List<Student> visibleStudents(CurrentUser user, List<UUID> curatorIds) {
+        List<Student> visible = visibleStudents(user);
+        if (!user.isAdmin() || curatorIds == null || curatorIds.isEmpty()) {
+            return visible;
+        }
+        Set<UUID> only = Set.copyOf(curatorIds);
+        return visible.stream().filter(s -> only.contains(s.getCuratorId())).toList();
+    }
+
     private CuratorStats ownCuratorStats(CurrentUser user) {
         User curator = userRepository.findById(user.id()).orElse(null);
         List<Student> mine = visibleStudents(user);
@@ -232,9 +247,10 @@ public class StatisticsService {
             avg = sum / withNorm;
         }
         int avgPct = (int) Math.round(avg * 100);
+        long paused = mine.stream().filter(Student::isPaused).count();
         return new CuratorStats(
                 curator.getId(), curator.getFullName(), curator.getAvatarColor(),
-                mine.size(), stuck, avgPct);
+                mine.size() - paused, paused, stuck, avgPct);
     }
 
     private String health(Student s) {

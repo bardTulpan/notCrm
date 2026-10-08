@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { useAuth } from '../../auth/useAuth'
 import { useCurators } from '../../hooks/useCurators'
+import { CuratorChips } from '../../components/CuratorChips'
 
 function Toggle({
   on,
@@ -57,7 +58,6 @@ export function StudentFilters({
 }) {
   const { user } = useAuth()
   const { curators } = useCurators()
-  const allActive = selectedCuratorIds.size === 0
 
   return (
     <div>
@@ -68,23 +68,7 @@ export function StudentFilters({
         </button>
       </div>
       <div className="flex items-center gap-2.5 mb-4 flex-wrap">
-        {user?.role === 'ADMIN' && (
-          <>
-            <button className={`chip ${allActive ? '!bg-ink-900 !border-ink-900 !text-white' : ''}`} onClick={() => onToggleCurator('all')}>
-              Все кураторы
-            </button>
-            {curators.map((c) => (
-              <button
-                key={c.id}
-                className={`chip ${selectedCuratorIds.has(c.id) ? 'active' : ''}`}
-                onClick={() => onToggleCurator(c.id)}
-              >
-                <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ background: c.avatarColor ?? '#93989F' }} />
-                {c.fullName}
-              </button>
-            ))}
-          </>
-        )}
+        {user?.role === 'ADMIN' && <CuratorChips curators={curators} selected={selectedCuratorIds} onToggle={onToggleCurator} />}
         <div className="ml-auto flex items-center gap-5 flex-wrap">
           <Toggle on={groupByCohort} onToggle={onToggleGroupByCohort}>
             По когортам

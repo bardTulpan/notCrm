@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react'
 import { statisticsApi } from '../api/statistics'
 import { useAuth } from '../auth/useAuth'
 import { useStages } from '../hooks/useStages'
+import { useCurators } from '../hooks/useCurators'
+import { CuratorChips } from '../components/CuratorChips'
+import { toggleCuratorSelection } from '../utils/curatorSelection'
 import { Loader } from '../components/Loader'
 import { ErrorState } from '../components/ErrorState'
 import { apiErrorMessage } from '../hooks/useToast'
@@ -29,28 +32,53 @@ export function StatisticsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [openCohortId, setOpenCohortId] = useState<string | null>(null)
+  const { curators } = useCurators()
+  const [selectedCuratorIds, setSelectedCuratorIds] = useState<Set<string>>(new Set())
+  const [refreshing, setRefreshing] = useState(false)
+  const curatorKey = [...selectedCuratorIds].sort().join(',')
 
   useEffect(() => {
-    setLoading(true)
     Promise.all([
-      statisticsApi.overview(),
-      statisticsApi.stages(),
-      statisticsApi.curators(),
-      statisticsApi.overdueStudents(),
       statisticsApi.cohorts(),
       user?.role === 'ADMIN' ? statisticsApi.curatorWorkload() : Promise.resolve([] as CuratorWorkload[]),
     ])
-      .then(([ov, st, cur, od, coh, wl]) => {
-        setOverview(ov)
-        setStageStats(st)
-        setCuratorStats(cur)
-        setOverdue(od)
+      .then(([coh, wl]) => {
         setCohortStats(coh)
         setWorkload(wl)
       })
       .catch((e) => setError(apiErrorMessage(e)))
-      .finally(() => setLoading(false))
   }, [user?.role])
+
+  // The "Основная" tab follows the curator filter; the page keeps showing the previous numbers while it reloads.
+  useEffect(() => {
+    let cancelled = false
+    const ids = curatorKey ? curatorKey.split(',') : undefined
+    setRefreshing(true)
+    Promise.all([
+      statisticsApi.overview(ids),
+      statisticsApi.stages(ids),
+      statisticsApi.curators(ids),
+      statisticsApi.overdueStudents(ids),
+    ])
+      .then(([ov, st, cur, od]) => {
+        if (cancelled) return
+        setOverview(ov)
+        setStageStats(st)
+        setCuratorStats(cur)
+        setOverdue(od)
+      })
+      .catch((e) => {
+        if (!cancelled) setError(apiErrorMessage(e))
+      })
+      .finally(() => {
+        if (cancelled) return
+        setRefreshing(false)
+        setLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [curatorKey])
 
   function exportFunnel() {
     downloadCsv(
@@ -95,7 +123,17 @@ export function StatisticsPage() {
       </div>
 
       {subTab === 'main' && (
-        <div>
+        <div className={`transition-opacity ${refreshing ? 'opacity-60' : ''}`}>
+          {user?.role === 'ADMIN' && (
+            <div className="flex items-center gap-2.5 mb-5 flex-wrap">
+              <CuratorChips
+                curators={curators}
+                selected={selectedCuratorIds}
+                onToggle={(id) => setSelectedCuratorIds((prev) => toggleCuratorSelection(prev, id))}
+              />
+            </div>
+          )}
+
           <div className="font-display font-semibold text-sm mb-2.5">Здоровье потока</div>
           <OverviewStats stats={overview} />
 

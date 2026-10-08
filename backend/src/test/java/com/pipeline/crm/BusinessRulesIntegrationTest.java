@@ -393,6 +393,41 @@ class BusinessRulesIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void statsCountPausedApartAndCanBeNarrowedToCurators() throws Exception {
+        String mineOnly = "?curatorIds=" + curatorId;
+        String otherOnly = "?curatorIds=" + otherCuratorId;
+        JsonNode mineStageBefore = getJson("/api/v1/stats/stages" + mineOnly, adminToken).get(0);
+        JsonNode otherStageBefore = getJson("/api/v1/stats/stages" + otherOnly, adminToken).get(0);
+        JsonNode mineOverviewBefore = getJson("/api/v1/stats/overview" + mineOnly, adminToken);
+
+        UUID paused = createStudent(stageIds.get(0), daysAgo(1), daysAgo(1)); // belongs to curatorId
+        mockMvc.perform(post("/api/v1/students/" + paused + "/pause")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk());
+        createStudentFor(otherCuratorId);
+
+        JsonNode mineStage = getJson("/api/v1/stats/stages" + mineOnly, adminToken).get(0);
+        assertThat(mineStage.get("paused").asLong()).isEqualTo(mineStageBefore.get("paused").asLong() + 1);
+        assertThat(mineStage.get("active").asLong()).isEqualTo(mineStageBefore.get("active").asLong());
+
+        JsonNode otherStage = getJson("/api/v1/stats/stages" + otherOnly, adminToken).get(0);
+        assertThat(otherStage.get("active").asLong()).isEqualTo(otherStageBefore.get("active").asLong() + 1);
+        assertThat(otherStage.get("paused").asLong()).isEqualTo(otherStageBefore.get("paused").asLong());
+
+        JsonNode mineOverview = getJson("/api/v1/stats/overview" + mineOnly, adminToken);
+        assertThat(mineOverview.get("total").asLong()).isEqualTo(mineOverviewBefore.get("total").asLong() + 1);
+        assertThat(mineOverview.get("paused").asLong()).isEqualTo(mineOverviewBefore.get("paused").asLong() + 1);
+
+        JsonNode curators = getJson("/api/v1/stats/curators" + otherOnly, adminToken);
+        assertThat(curators.size()).isEqualTo(1);
+        assertThat(curators.get(0).get("curatorId").asText()).isEqualTo(otherCuratorId.toString());
+
+        // a curator can't peek at someone else's numbers through the filter: it is ignored for them
+        assertThat(getJson("/api/v1/stats/overview" + otherOnly, curatorToken))
+                .isEqualTo(getJson("/api/v1/stats/overview", curatorToken));
+    }
+
+    @Test
     void auditLogCanBeFilteredByStudentAndPeriod() throws Exception {
         UUID studentId = createStudent(stageIds.get(0), daysAgo(1), daysAgo(1));
         moveStage(studentId, stageIds.get(1));
