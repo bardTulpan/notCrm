@@ -1,6 +1,7 @@
 [Unit]
 Description=Pipeline CRM database backup
 After=postgresql.service
+OnFailure=pipeline-crm-backup-alert.service
 
 [Service]
 Type=oneshot

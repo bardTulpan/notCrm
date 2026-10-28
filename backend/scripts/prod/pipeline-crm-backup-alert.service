@@ -1,0 +1,6 @@
+[Unit]
+Description=Email alert when Pipeline CRM database backup fails
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/pipeline-crm-backup-alert.sh
